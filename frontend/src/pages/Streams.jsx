@@ -112,7 +112,6 @@ export default function Streams() {
   const [muted, setMuted] = useState(false);
   const [quality, setQuality] = useState('auto');
   const playerRef = useRef(null);
-  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const mergedMatches = useMemo(() => {
     const map = new Map();
@@ -279,11 +278,6 @@ export default function Streams() {
   }, [selectedMatchId]);
 
   useEffect(() => {
-    // If the stream changes (or a new one is approved), wait for the player to load before counting viewers.
-    setIframeLoaded(false);
-  }, [selectedMatchId, stream?.id]);
-
-  useEffect(() => {
     if (!selectedMatchId) return;
     const interval = setInterval(() => {
       loadLiveData(selectedMatchId);
@@ -300,8 +294,6 @@ export default function Streams() {
     if (!selectedMatchId) return;
     // Only count a viewer when there is an approved stream to actually watch.
     if (!stream?.id || streamAccessError) return;
-    // Wait until the iframe is loaded once so we don't count "drive-by" match selections.
-    if (!iframeLoaded) return;
 
     const viewerId = getViewerId();
     let cancelled = false;
@@ -328,7 +320,7 @@ export default function Streams() {
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [selectedMatchId, stream?.id, streamAccessError, iframeLoaded]);
+  }, [selectedMatchId, stream?.id, streamAccessError]);
 
   useEffect(() => {
     if (!match?.scheduled_at) {
@@ -533,7 +525,6 @@ export default function Streams() {
                   className="h-[280px] w-full md:h-[420px]"
                   allow="autoplay; encrypted-media; fullscreen"
                   allowFullScreen
-                  onLoad={() => setIframeLoaded(true)}
                 />
               ) : (
                 <div className="grid h-[280px] w-full place-items-center text-sm text-ink-500 md:h-[420px]">
