@@ -20,14 +20,6 @@ export default function Home() {
   const [status, setStatus] = useState({ state: 'loading', data: null, error: null });
   const [sponsors, setSponsors] = useState([]);
   const welcomeVideoId = 'By7ef_664qk';
-  const welcomeEmbedSrc = useMemo(() => {
-    const base = `https://www.youtube-nocookie.com/embed/${welcomeVideoId}`;
-    if (typeof window === 'undefined') {
-      return `${base}?autoplay=1&mute=1&playsinline=1&loop=1&playlist=${welcomeVideoId}&rel=0&modestbranding=1`;
-    }
-    const origin = encodeURIComponent(window.location.origin);
-    return `${base}?autoplay=1&mute=1&playsinline=1&loop=1&playlist=${welcomeVideoId}&rel=0&modestbranding=1&origin=${origin}`;
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -138,10 +130,11 @@ export default function Home() {
             <div className="relative aspect-video w-full">
               <iframe
                 className="absolute inset-0 h-full w-full"
-                src={welcomeEmbedSrc}
-                title="NEEFL Welcome Video"
+                src="https://www.youtube.com/embed/By7ef_664qk"
+                title="eFootball™ 2022 Official Mobile Trailer"
                 frameBorder="0"
-                allow="autoplay; encrypted-media; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
               />
             </div>
