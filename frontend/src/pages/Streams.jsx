@@ -22,13 +22,13 @@ const getViewerId = () => {
   try {
     const existing = window.sessionStorage.getItem(key);
     if (existing) return existing;
-  } catch (err) {
+  } catch {
     // ignore
   }
   const value = window.crypto?.randomUUID ? window.crypto.randomUUID() : `viewer_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   try {
     window.sessionStorage.setItem(key, value);
-  } catch (err) {
+  } catch {
     // ignore
   }
   return value;
@@ -51,7 +51,7 @@ const getYouTubeId = (link) => {
     if (parts[0] === 'embed' && parts[1]) {
       return parts[1];
     }
-  } catch (err) {
+  } catch {
     return null;
   }
   return null;
@@ -65,7 +65,7 @@ const getTwitchChannel = (link) => {
       return parts[0] || null;
     }
     return null;
-  } catch (err) {
+  } catch {
     return null;
   }
 };

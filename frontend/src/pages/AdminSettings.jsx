@@ -185,7 +185,7 @@ export default function AdminSettings() {
           merged[roleKey] = { ...defaults, ...(parsed?.[roleKey] || {}) };
         });
         setRolePermissions(merged);
-      } catch (err) {
+      } catch {
         setRolePermissions(defaultRolePermissions);
       }
     } else {

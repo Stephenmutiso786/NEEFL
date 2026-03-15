@@ -13,7 +13,7 @@ export function getTokenPayload() {
   try {
     const payload = JSON.parse(atob(base64));
     return payload;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -55,7 +55,7 @@ function parseResponseText(text) {
   if (!text) return null;
   try {
     return JSON.parse(text);
-  } catch (err) {
+  } catch {
     return text;
   }
 }

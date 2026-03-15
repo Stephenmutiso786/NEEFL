@@ -6,7 +6,7 @@ function parsePayload(payload) {
   if (typeof payload === 'string') {
     try {
       return JSON.parse(payload);
-    } catch (err) {
+    } catch {
       return { message: payload };
     }
   }
