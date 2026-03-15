@@ -20,12 +20,41 @@ export default function AuthRegister() {
   const [status, setStatus] = useState({ state: 'idle', message: '' });
   const navigate = useNavigate();
 
+  const humanizeValidationMessage = (message) => {
+    if (!message) return '';
+    if (message === 'email_or_phone_required') return 'Email or phone is required.';
+    if (message === 'weak_password') return 'Password must be 8+ chars with uppercase, lowercase, number, and symbol.';
+    if (message === 'Invalid email') return 'Enter a valid email address.';
+    return message;
+  };
+
+  const formatValidationDetails = (details) => {
+    if (!details) return 'Please check your input and try again.';
+    const messages = [];
+    const formErrors = Array.isArray(details.formErrors) ? details.formErrors : [];
+    formErrors.forEach((msg) => messages.push(humanizeValidationMessage(msg)));
+
+    const fieldErrors = details.fieldErrors && typeof details.fieldErrors === 'object' ? details.fieldErrors : {};
+    Object.entries(fieldErrors).forEach(([field, errs]) => {
+      if (!Array.isArray(errs) || !errs.length) return;
+      const cleaned = errs.map((msg) => humanizeValidationMessage(msg)).filter(Boolean);
+      if (!cleaned.length) return;
+      messages.push(`${field.replace(/_/g, ' ')}: ${cleaned.join(', ')}`);
+    });
+
+    return messages.filter(Boolean).join(' | ') || 'Please check your input and try again.';
+  };
+
   const onChange = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
   const onSubmit = async (event) => {
     event.preventDefault();
+    if (!form.email && !form.phone) {
+      setStatus({ state: 'error', message: 'Email or phone is required.' });
+      return;
+    }
     if (form.password !== form.confirm) {
       setStatus({ state: 'error', message: 'Passwords do not match.' });
       return;
@@ -59,7 +88,13 @@ export default function AuthRegister() {
         navigate('/player/dashboard');
       }
     } catch (err) {
-      setStatus({ state: 'error', message: err.message });
+      if (err.message === 'validation_error') {
+        setStatus({ state: 'error', message: formatValidationDetails(err.data?.details) });
+      } else if (err.message === 'user_exists') {
+        setStatus({ state: 'error', message: 'Account already exists for that email/phone.' });
+      } else {
+        setStatus({ state: 'error', message: err.message });
+      }
     }
   };
 
