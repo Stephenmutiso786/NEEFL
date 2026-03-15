@@ -130,7 +130,7 @@ export default function Home() {
             <div className="relative aspect-video w-full">
               <iframe
                 className="absolute inset-0 h-full w-full"
-                src="https://www.youtube.com/embed/By7ef_664qk"
+                src="https://www.youtube.com/embed/By7ef_664qk?autoplay=1&mute=1&loop=1&playlist=By7ef_664qk&playsinline=1"
                 title="eFootball™ 2022 Official Mobile Trailer"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
