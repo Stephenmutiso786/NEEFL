@@ -22,7 +22,8 @@ router.post('/', requireAuth, requireRole('admin'), validate(policyCreateSchema)
   const { slug, title, category, body, status } = req.body;
   const [result] = await db.query(
     `INSERT INTO policy_documents (slug, title, category, body, status, updated_by)
-     VALUES (:slug, :title, :category, :body, :status, :updated_by)`,
+     VALUES (:slug, :title, :category, :body, :status, :updated_by)
+     RETURNING id`,
     {
       slug,
       title,

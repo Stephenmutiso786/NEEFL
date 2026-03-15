@@ -52,7 +52,8 @@ router.post('/withdraw', requireAuth, validate(withdrawRequestSchema), asyncHand
   const result = await db.tx(async (conn) => {
     const [insert] = await conn.execute(
       `INSERT INTO withdrawal_requests (user_id, amount, phone, notes)
-       VALUES (:user_id, :amount, :phone, :notes)`,
+       VALUES (:user_id, :amount, :phone, :notes)
+       RETURNING id`,
       {
         user_id: req.user.id,
         amount,
@@ -76,7 +77,7 @@ router.post('/withdraw', requireAuth, validate(withdrawRequestSchema), asyncHand
   });
 
   const [[admins]] = await db.query(
-    'SELECT GROUP_CONCAT(id) AS ids FROM users WHERE role = \"admin\" AND status = \"active\"'
+    \"SELECT STRING_AGG(id::text, ',') AS ids FROM users WHERE role = 'admin' AND status = 'active'\"
   );
   const adminIds = admins?.ids ? admins.ids.split(',').map((id) => Number(id)) : [];
 

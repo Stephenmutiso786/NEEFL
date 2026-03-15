@@ -176,7 +176,8 @@ router.post('/:id/stream', requireAuth, requireRole('player', 'supervisor', 'ref
        VALUES (
           :match_id, :stream_platform, :stream_link, :stream_link_hd, :stream_link_sd, :stream_link_audio,
           :access_level, :status, :created_by, :approved_by, :approved_at
-       )`,
+       )
+       RETURNING id`,
       {
         match_id: matchId,
         stream_platform: parsed.data.stream_platform,

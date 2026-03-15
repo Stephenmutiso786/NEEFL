@@ -9,10 +9,37 @@ const schemaPath = path.join(__dirname, 'schema.sql');
 
 const schema = fs.readFileSync(schemaPath, 'utf8');
 
-const statements = schema
-  .split(/;\s*\n/)
-  .map((stmt) => stmt.trim())
-  .filter(Boolean);
+const statements = [];
+let buffer = '';
+let inDollarBlock = false;
+
+for (let i = 0; i < schema.length; i += 1) {
+  const char = schema[i];
+  const next = schema[i + 1];
+
+  if (char === '$' && next === '$') {
+    inDollarBlock = !inDollarBlock;
+    buffer += '$$';
+    i += 1;
+    continue;
+  }
+
+  if (char === ';' && !inDollarBlock) {
+    const stmt = buffer.trim();
+    if (stmt) {
+      statements.push(stmt);
+    }
+    buffer = '';
+    continue;
+  }
+
+  buffer += char;
+}
+
+const tail = buffer.trim();
+if (tail) {
+  statements.push(tail);
+}
 
 for (const stmt of statements) {
   await db.query(stmt);

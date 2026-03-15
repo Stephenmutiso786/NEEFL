@@ -22,7 +22,8 @@ router.post('/', requireAuth, requireRole('admin'), validate(seasonCreateSchema)
   const { name, entry_fee, prize_pool, start_date, end_date, status } = req.body;
   const [result] = await db.query(
     `INSERT INTO seasons (name, entry_fee, prize_pool, start_date, end_date, status)
-     VALUES (:name, :entry_fee, :prize_pool, :start_date, :end_date, :status)`,
+     VALUES (:name, :entry_fee, :prize_pool, :start_date, :end_date, :status)
+     RETURNING id`,
     {
       name,
       entry_fee,

@@ -68,7 +68,8 @@ router.post('/', requireAuth, requireRole('admin'), validate(createTournamentSch
 
   const [result] = await db.query(
     `INSERT INTO tournaments (name, format, entry_fee, prize_pool, rules, start_date, end_date, status, season_id, created_by)
-     VALUES (:name, :format, :entry_fee, :prize_pool, :rules, :start_date, :end_date, 'open', :season_id, :created_by)`,
+     VALUES (:name, :format, :entry_fee, :prize_pool, :rules, :start_date, :end_date, 'open', :season_id, :created_by)
+     RETURNING id`,
     {
       name,
       format,

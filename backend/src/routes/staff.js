@@ -16,10 +16,10 @@ router.use(requireAuth, requireRole('admin', 'supervisor', 'referee', 'moderator
 
 router.get('/overview', asyncHandler(async (req, res) => {
   const [[pendingMatches]] = await db.query(
-    'SELECT COUNT(*) as count FROM matches WHERE status IN ("submitted","confirmed","disputed")'
+    \"SELECT COUNT(*) as count FROM matches WHERE status IN ('submitted','confirmed','disputed')\"
   );
   const [[openDisputes]] = await db.query(
-    'SELECT COUNT(*) as count FROM disputes WHERE status = "open"'
+    \"SELECT COUNT(*) as count FROM disputes WHERE status = 'open'\"
   );
   res.json({
     pending_matches: pendingMatches.count,

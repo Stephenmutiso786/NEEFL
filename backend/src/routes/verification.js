@@ -26,14 +26,15 @@ router.post('/me', requireAuth, validate(verificationSubmitSchema), asyncHandler
     await conn.execute(
       `INSERT INTO user_verifications (user_id, full_name, id_type, id_number, country, date_of_birth, phone, document_url, status)
        VALUES (:user_id, :full_name, :id_type, :id_number, :country, :date_of_birth, :phone, :document_url, 'pending')
-       ON DUPLICATE KEY UPDATE
-         full_name = VALUES(full_name),
-         id_type = VALUES(id_type),
-         id_number = VALUES(id_number),
-         country = VALUES(country),
-         date_of_birth = VALUES(date_of_birth),
-         phone = VALUES(phone),
-         document_url = VALUES(document_url),
+       ON CONFLICT (user_id)
+       DO UPDATE SET
+         full_name = EXCLUDED.full_name,
+         id_type = EXCLUDED.id_type,
+         id_number = EXCLUDED.id_number,
+         country = EXCLUDED.country,
+         date_of_birth = EXCLUDED.date_of_birth,
+         phone = EXCLUDED.phone,
+         document_url = EXCLUDED.document_url,
          status = 'pending',
          reviewed_by = NULL,
          reviewed_at = NULL,

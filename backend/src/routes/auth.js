@@ -73,7 +73,8 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
   const userId = await db.tx(async (conn) => {
     const [result] = await conn.execute(
       `INSERT INTO users (email, phone, password_hash, role, status)
-       VALUES (:email, :phone, :password_hash, :role, 'pending')`,
+       VALUES (:email, :phone, :password_hash, :role, 'pending')
+       RETURNING id`,
       { email: email || null, phone: phone || null, password_hash: passwordHash, role: userRole }
     );
 
@@ -103,7 +104,7 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
   const token = signToken({ sub: userId, role: userRole });
 
   const [[admins]] = await db.query(
-    'SELECT GROUP_CONCAT(id) AS ids FROM users WHERE role = \"admin\" AND status = \"active\"'
+    \"SELECT STRING_AGG(id::text, ',') AS ids FROM users WHERE role = 'admin' AND status = 'active'\"
   );
   const adminIds = admins?.ids ? admins.ids.split(',').map((id) => Number(id)) : [];
   if (adminIds.length) {

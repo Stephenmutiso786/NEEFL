@@ -18,6 +18,27 @@ function requireEnv(key) {
   return value;
 }
 
+function parseDatabaseUrl(url) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const dbName = parsed.pathname ? parsed.pathname.replace('/', '') : undefined;
+    return {
+      host: parsed.hostname,
+      port: parsed.port ? Number(parsed.port) : undefined,
+      user: decodeURIComponent(parsed.username || ''),
+      password: decodeURIComponent(parsed.password || ''),
+      name: dbName,
+      ssl: parsed.searchParams.get('sslmode') === 'require'
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
+const databaseUrl = getEnv('DATABASE_URL');
+const parsedDbUrl = parseDatabaseUrl(databaseUrl);
+
 export const env = {
   nodeEnv: getEnv('NODE_ENV', 'development'),
   port: Number(getEnv('PORT', '8080')),
@@ -31,12 +52,12 @@ export const env = {
   loginLockMinutes: Number(getEnv('LOGIN_LOCK_MINUTES', '15')),
 
   db: {
-    host: getEnv('DB_HOST', '127.0.0.1'),
-    port: Number(getEnv('DB_PORT', '3306')),
-    user: getEnv('DB_USER', 'neefl'),
-    password: getEnv('DB_PASSWORD', 'neefl'),
-    name: getEnv('DB_NAME', 'neefl'),
-    ssl: getEnv('DB_SSL', 'false') === 'true',
+    host: parsedDbUrl?.host || getEnv('DB_HOST', '127.0.0.1'),
+    port: Number(parsedDbUrl?.port || getEnv('DB_PORT', '5432')),
+    user: parsedDbUrl?.user || getEnv('DB_USER', 'neefl'),
+    password: parsedDbUrl?.password || getEnv('DB_PASSWORD', 'neefl'),
+    name: parsedDbUrl?.name || getEnv('DB_NAME', 'neefl'),
+    ssl: parsedDbUrl?.ssl ?? getEnv('DB_SSL', 'false') === 'true',
     sslCa: getEnv('DB_SSL_CA'),
     sslCaBase64: getEnv('DB_SSL_CA_BASE64'),
     sslRejectUnauthorized: getEnv('DB_SSL_REJECT_UNAUTHORIZED', 'true') === 'true'

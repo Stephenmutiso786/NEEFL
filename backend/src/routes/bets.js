@@ -77,7 +77,8 @@ router.post('/', requireAuth, validate(placeBetSchema), asyncHandler(async (req,
 
       const [insert] = await conn.execute(
         `INSERT INTO bets (user_id, match_id, amount, choice, odds)
-         VALUES (:user_id, :match_id, :amount, :choice, :odds)`,
+         VALUES (:user_id, :match_id, :amount, :choice, :odds)
+         RETURNING id`,
         {
           user_id: req.user.id,
           match_id,

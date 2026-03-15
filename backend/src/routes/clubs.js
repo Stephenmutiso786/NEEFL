@@ -83,7 +83,8 @@ router.post('/', requireAuth, validate(clubCreateSchema), asyncHandler(async (re
   const clubId = await db.tx(async (conn) => {
     const [result] = await conn.execute(
       `INSERT INTO clubs (name, slug, description, logo_url, region, created_by)
-       VALUES (:name, :slug, :description, :logo_url, :region, :created_by)`,
+       VALUES (:name, :slug, :description, :logo_url, :region, :created_by)
+       RETURNING id`,
       {
         name,
         slug: finalSlug,

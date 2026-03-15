@@ -135,7 +135,8 @@ router.post('/friends/request', requireAuth, validate(friendRequestSchema), asyn
 
   const [result] = await db.query(
     `INSERT INTO friends (requester_id, receiver_id, status)
-     VALUES (:requester_id, :receiver_id, 'pending')`,
+     VALUES (:requester_id, :receiver_id, 'pending')
+     RETURNING id`,
     { requester_id: req.user.id, receiver_id: targetId }
   );
   res.status(201).json({ id: result.insertId, status: 'pending' });
@@ -221,7 +222,7 @@ router.post('/follow', requireAuth, validate(followSchema), asyncHandler(async (
   await db.query(
     `INSERT INTO follows (follower_id, following_id)
      VALUES (:follower_id, :following_id)
-     ON DUPLICATE KEY UPDATE follower_id = follower_id`,
+     ON CONFLICT (follower_id, following_id) DO NOTHING`,
     { follower_id: req.user.id, following_id: targetId }
   );
 

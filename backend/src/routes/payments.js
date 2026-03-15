@@ -41,7 +41,8 @@ router.post('/mpesa/stk-push', requireAuth, validate(stkPushSchema), asyncHandle
 
   const [paymentResult] = await db.query(
     `INSERT INTO payments (user_id, amount, currency, type, method, status, metadata)
-     VALUES (:user_id, :amount, 'KES', :type, 'mpesa', 'pending', :metadata)`,
+     VALUES (:user_id, :amount, 'KES', :type, 'mpesa', 'pending', :metadata)
+     RETURNING id`,
     {
       user_id: req.user.id,
       amount,
@@ -235,7 +236,8 @@ router.post('/payouts', requireAuth, requireRole('admin'), validate(payoutSchema
 
   const [paymentResult] = await db.query(
     `INSERT INTO payments (user_id, amount, currency, type, method, status)
-     VALUES (:user_id, :amount, 'KES', 'prize_payout', 'mpesa', 'pending')`,
+     VALUES (:user_id, :amount, 'KES', 'prize_payout', 'mpesa', 'pending')
+     RETURNING id`,
     { user_id, amount }
   );
 

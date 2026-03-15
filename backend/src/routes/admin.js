@@ -56,12 +56,12 @@ async function collectMatchUserIds(matchId) {
 }
 
 router.get('/dashboard', asyncHandler(async (req, res) => {
-  const [[players]] = await db.query('SELECT COUNT(*) as count FROM users WHERE role = "player"');
+  const [[players]] = await db.query(\"SELECT COUNT(*) as count FROM users WHERE role = 'player'\");
   const [[tournaments]] = await db.query('SELECT COUNT(*) as count FROM tournaments');
-  const [[matches]] = await db.query('SELECT COUNT(*) as count FROM matches WHERE status IN ("scheduled","submitted","confirmed","disputed")');
-  const [[disputes]] = await db.query('SELECT COUNT(*) as count FROM disputes WHERE status = "open"');
-  const [[payments]] = await db.query('SELECT SUM(amount) as total FROM payments WHERE status = "paid"');
-  const [[withdrawals]] = await db.query('SELECT COUNT(*) as count FROM withdrawal_requests WHERE status IN ("pending","approved")');
+  const [[matches]] = await db.query(\"SELECT COUNT(*) as count FROM matches WHERE status IN ('scheduled','submitted','confirmed','disputed')\");
+  const [[disputes]] = await db.query(\"SELECT COUNT(*) as count FROM disputes WHERE status = 'open'\");
+  const [[payments]] = await db.query(\"SELECT SUM(amount) as total FROM payments WHERE status = 'paid'\");
+  const [[withdrawals]] = await db.query(\"SELECT COUNT(*) as count FROM withdrawal_requests WHERE status IN ('pending','approved')\");
 
   res.json({
     players: players.count,
@@ -129,7 +129,7 @@ router.put('/players/:id', validate(updateProfileSchema), asyncHandler(async (re
 
 router.post('/users/:id/approve', asyncHandler(async (req, res) => {
   await db.query(
-    'UPDATE users SET status = "active" WHERE id = :id',
+    \"UPDATE users SET status = 'active' WHERE id = :id\",
     { id: req.params.id }
   );
   await notifyUsers(db, [Number(req.params.id)], 'user_approved', { user_id: Number(req.params.id) });
@@ -146,7 +146,7 @@ router.post('/users/:id/approve', asyncHandler(async (req, res) => {
 
 router.post('/users/:id/ban', asyncHandler(async (req, res) => {
   await db.query(
-    'UPDATE users SET status = "banned" WHERE id = :id',
+    \"UPDATE users SET status = 'banned' WHERE id = :id\",
     { id: req.params.id }
   );
   await notifyUsers(db, [Number(req.params.id)], 'user_banned', { user_id: Number(req.params.id) });
@@ -401,7 +401,8 @@ router.post('/matches', validate(createMatchSchema), asyncHandler(async (req, re
      VALUES (
         :tournament_id, :round, :player1_id, :player2_id, :referee_id, :scheduled_at,
         'scheduled', :match_fee, :odds_home, :odds_draw, :odds_away
-     )`,
+     )
+     RETURNING id`,
     {
       tournament_id,
       round: round || null,
@@ -814,7 +815,8 @@ router.post('/matches/:id/events', validate(matchEventSchema), asyncHandler(asyn
   const { event_type, side, minute, description } = req.body;
   const [result] = await db.query(
     `INSERT INTO match_events (match_id, event_type, side, minute, description, created_by)
-     VALUES (:match_id, :event_type, :side, :minute, :description, :created_by)`,
+     VALUES (:match_id, :event_type, :side, :minute, :description, :created_by)
+     RETURNING id`,
     {
       match_id: matchId,
       event_type,
@@ -849,19 +851,20 @@ router.put('/matches/:id/stats', validate(liveStatsSchema), asyncHandler(async (
         :match_id, :possession_home, :possession_away, :shots_home, :shots_away,
         :passes_home, :passes_away, :fouls_home, :fouls_away, :yellow_home, :yellow_away, :red_home, :red_away
      )
-     ON DUPLICATE KEY UPDATE
-        possession_home = COALESCE(:possession_home, possession_home),
-        possession_away = COALESCE(:possession_away, possession_away),
-        shots_home = COALESCE(:shots_home, shots_home),
-        shots_away = COALESCE(:shots_away, shots_away),
-        passes_home = COALESCE(:passes_home, passes_home),
-        passes_away = COALESCE(:passes_away, passes_away),
-        fouls_home = COALESCE(:fouls_home, fouls_home),
-        fouls_away = COALESCE(:fouls_away, fouls_away),
-        yellow_home = COALESCE(:yellow_home, yellow_home),
-        yellow_away = COALESCE(:yellow_away, yellow_away),
-        red_home = COALESCE(:red_home, red_home),
-        red_away = COALESCE(:red_away, red_away)`,
+     ON CONFLICT (match_id)
+     DO UPDATE SET
+        possession_home = COALESCE(EXCLUDED.possession_home, match_live_stats.possession_home),
+        possession_away = COALESCE(EXCLUDED.possession_away, match_live_stats.possession_away),
+        shots_home = COALESCE(EXCLUDED.shots_home, match_live_stats.shots_home),
+        shots_away = COALESCE(EXCLUDED.shots_away, match_live_stats.shots_away),
+        passes_home = COALESCE(EXCLUDED.passes_home, match_live_stats.passes_home),
+        passes_away = COALESCE(EXCLUDED.passes_away, match_live_stats.passes_away),
+        fouls_home = COALESCE(EXCLUDED.fouls_home, match_live_stats.fouls_home),
+        fouls_away = COALESCE(EXCLUDED.fouls_away, match_live_stats.fouls_away),
+        yellow_home = COALESCE(EXCLUDED.yellow_home, match_live_stats.yellow_home),
+        yellow_away = COALESCE(EXCLUDED.yellow_away, match_live_stats.yellow_away),
+        red_home = COALESCE(EXCLUDED.red_home, match_live_stats.red_home),
+        red_away = COALESCE(EXCLUDED.red_away, match_live_stats.red_away)`,
     {
       match_id: matchId,
       possession_home: payload.possession_home ?? null,
@@ -887,10 +890,11 @@ router.put('/matches/:id/replay', validate(replaySchema), asyncHandler(async (re
   await db.query(
     `INSERT INTO match_replays (match_id, replay_url, highlights_url, created_by)
      VALUES (:match_id, :replay_url, :highlights_url, :created_by)
-     ON DUPLICATE KEY UPDATE
-        replay_url = COALESCE(:replay_url, replay_url),
-        highlights_url = COALESCE(:highlights_url, highlights_url),
-        created_by = :created_by`,
+     ON CONFLICT (match_id)
+     DO UPDATE SET
+        replay_url = COALESCE(EXCLUDED.replay_url, match_replays.replay_url),
+        highlights_url = COALESCE(EXCLUDED.highlights_url, match_replays.highlights_url),
+        created_by = EXCLUDED.created_by`,
     {
       match_id: matchId,
       replay_url: replay_url || null,
@@ -907,10 +911,11 @@ router.put('/matches/:id/chat-settings', validate(chatSettingsSchema), asyncHand
   await db.query(
     `INSERT INTO match_chat_settings (match_id, enabled, slow_mode_seconds, updated_by)
      VALUES (:match_id, :enabled, :slow_mode_seconds, :updated_by)
-     ON DUPLICATE KEY UPDATE
-        enabled = COALESCE(:enabled, enabled),
-        slow_mode_seconds = COALESCE(:slow_mode_seconds, slow_mode_seconds),
-        updated_by = :updated_by`,
+     ON CONFLICT (match_id)
+     DO UPDATE SET
+        enabled = COALESCE(EXCLUDED.enabled, match_chat_settings.enabled),
+        slow_mode_seconds = COALESCE(EXCLUDED.slow_mode_seconds, match_chat_settings.slow_mode_seconds),
+        updated_by = EXCLUDED.updated_by`,
     {
       match_id: matchId,
       enabled: enabled === undefined ? null : enabled ? 1 : 0,
@@ -963,7 +968,7 @@ router.get('/matches/:id/viewers', asyncHandler(async (req, res) => {
   const [[current]] = await db.query(
     `SELECT COUNT(*) as count
      FROM match_viewers
-     WHERE match_id = :match_id AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 20 SECOND)`,
+     WHERE match_id = :match_id AND last_seen_at >= (NOW() - INTERVAL '20 seconds')`,
     { match_id: matchId }
   );
   res.json({
@@ -975,7 +980,7 @@ router.get('/matches/:id/viewers', asyncHandler(async (req, res) => {
 
 router.get('/featured-match', asyncHandler(async (req, res) => {
   const [[row]] = await db.query(
-    'SELECT setting_value FROM platform_settings WHERE setting_key = "featured_match_id"'
+    \"SELECT setting_value FROM platform_settings WHERE setting_key = 'featured_match_id'\"
   );
   res.json({ match_id: row ? Number(row.setting_value) : null });
 }));
@@ -985,7 +990,8 @@ router.put('/featured-match', validate(featuredMatchSchema), asyncHandler(async 
   await db.query(
     `INSERT INTO platform_settings (setting_key, setting_value, updated_by)
      VALUES ('featured_match_id', :value, :updated_by)
-     ON DUPLICATE KEY UPDATE setting_value = :value, updated_by = :updated_by`,
+     ON CONFLICT (setting_key)
+     DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_by = EXCLUDED.updated_by`,
     { value: String(match_id), updated_by: req.user.id }
   );
   res.status(200).json({ match_id });
@@ -1007,7 +1013,8 @@ router.post('/sponsors', asyncHandler(async (req, res) => {
   }
   const [result] = await db.query(
     `INSERT INTO sponsors (name, logo_url, website_url, position, active)
-     VALUES (:name, :logo_url, :website_url, :position, :active)`,
+     VALUES (:name, :logo_url, :website_url, :position, :active)
+     RETURNING id`,
     {
       name,
       logo_url: logo_url || null,
@@ -1251,7 +1258,7 @@ router.get('/reports/summary', asyncHandler(async (req, res) => {
   const params = from && to ? { from: from.format('YYYY-MM-DD HH:mm:ss'), to: to.format('YYYY-MM-DD HH:mm:ss') } : {};
 
   const [[playerCount]] = await db.query(
-    `SELECT COUNT(*) as count FROM users WHERE role = "player" ${timeFilter}`,
+    `SELECT COUNT(*) as count FROM users WHERE role = 'player' ${timeFilter}`,
     params
   );
   const [[tournamentCount]] = await db.query(
@@ -1263,7 +1270,7 @@ router.get('/reports/summary', asyncHandler(async (req, res) => {
     params
   );
   const [[revenue]] = await db.query(
-    `SELECT SUM(amount) as total FROM payments WHERE status = "paid" ${timeFilter}`,
+    `SELECT SUM(amount) as total FROM payments WHERE status = 'paid' ${timeFilter}`,
     params
   );
 
@@ -1289,9 +1296,10 @@ router.post('/settings', validate(settingsSchema), asyncHandler(async (req, res)
   await db.query(
     `INSERT INTO platform_settings (setting_key, setting_value, updated_by)
      VALUES (:key, :value, :updated_by)
-     ON DUPLICATE KEY UPDATE
-       setting_value = VALUES(setting_value),
-       updated_by = VALUES(updated_by)`,
+     ON CONFLICT (setting_key)
+     DO UPDATE SET
+       setting_value = EXCLUDED.setting_value,
+       updated_by = EXCLUDED.updated_by`,
     { key, value, updated_by: req.user.id }
   );
   await logAudit(db, {

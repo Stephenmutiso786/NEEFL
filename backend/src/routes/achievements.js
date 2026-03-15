@@ -34,7 +34,8 @@ router.post('/admin', requireAuth, requireRole('admin'), validate(achievementCre
   const { name, description, icon_url, points } = req.body;
   const [result] = await db.query(
     `INSERT INTO achievements (name, description, icon_url, points)
-     VALUES (:name, :description, :icon_url, :points)`,
+     VALUES (:name, :description, :icon_url, :points)
+     RETURNING id`,
     {
       name,
       description: description || null,
@@ -52,7 +53,8 @@ router.post('/admin/:id/award', requireAuth, requireRole('admin'), validate(achi
   await db.query(
     `INSERT INTO user_achievements (achievement_id, user_id, awarded_by)
      VALUES (:achievement_id, :user_id, :awarded_by)
-     ON DUPLICATE KEY UPDATE awarded_at = NOW(), awarded_by = :awarded_by`,
+     ON CONFLICT (achievement_id, user_id)
+     DO UPDATE SET awarded_at = NOW(), awarded_by = EXCLUDED.awarded_by`,
     {
       achievement_id: achievementId,
       user_id,

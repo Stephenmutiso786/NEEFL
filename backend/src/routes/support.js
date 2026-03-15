@@ -15,7 +15,8 @@ router.post('/', requireAuth, validate(supportTicketSchema), asyncHandler(async 
 
   const [result] = await db.query(
     `INSERT INTO support_tickets (user_id, subject, message, contact_email, contact_phone)
-     VALUES (:user_id, :subject, :message, :contact_email, :contact_phone)`,
+     VALUES (:user_id, :subject, :message, :contact_email, :contact_phone)
+     RETURNING id`,
     {
       user_id: req.user.id,
       subject,
@@ -26,7 +27,7 @@ router.post('/', requireAuth, validate(supportTicketSchema), asyncHandler(async 
   );
 
   const [[admins]] = await db.query(
-    'SELECT GROUP_CONCAT(id) AS ids FROM users WHERE role = \"admin\" AND status = \"active\"'
+    \"SELECT STRING_AGG(id::text, ',') AS ids FROM users WHERE role = 'admin' AND status = 'active'\"
   );
   const adminIds = admins?.ids ? admins.ids.split(',').map((id) => Number(id)) : [];
 

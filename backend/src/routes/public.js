@@ -94,7 +94,7 @@ router.get('/overview', asyncHandler(async (req, res) => {
 
 router.get('/featured-match', asyncHandler(async (req, res) => {
   const [[row]] = await db.query(
-    'SELECT setting_value FROM platform_settings WHERE setting_key = "featured_match_id"'
+    \"SELECT setting_value FROM platform_settings WHERE setting_key = 'featured_match_id'\"
   );
   res.json({ match_id: row ? Number(row.setting_value) : null });
 }));
@@ -418,14 +418,15 @@ router.post('/matches/:id/viewer', optionalAuth, asyncHandler(async (req, res) =
     await conn.execute(
       `INSERT INTO match_viewers (match_id, viewer_id, user_id, last_seen_at)
        VALUES (:match_id, :viewer_id, :user_id, NOW())
-       ON DUPLICATE KEY UPDATE last_seen_at = NOW(), user_id = VALUES(user_id)`,
+       ON CONFLICT (match_id, viewer_id)
+       DO UPDATE SET last_seen_at = NOW(), user_id = EXCLUDED.user_id`,
       { match_id: matchId, viewer_id: viewerId, user_id: req.user?.id || null }
     );
 
     const [[current]] = await conn.query(
       `SELECT COUNT(*) as count
        FROM match_viewers
-       WHERE match_id = :match_id AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 20 SECOND)`,
+       WHERE match_id = :match_id AND last_seen_at >= (NOW() - INTERVAL '20 seconds')`,
       { match_id: matchId }
     );
     await conn.execute(
@@ -445,20 +446,20 @@ router.get('/matches/:id/viewers', asyncHandler(async (req, res) => {
   const [[countRow]] = await db.query(
     `SELECT COUNT(*) as count
      FROM match_viewers
-     WHERE match_id = :match_id AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 20 SECOND)`,
+     WHERE match_id = :match_id AND last_seen_at >= (NOW() - INTERVAL '20 seconds')`,
     { match_id: matchId }
   );
   const [rows] = await db.query(
-    `SELECT mv.user_id, p.gamer_tag, u.privacy_presence
+    `SELECT mv.user_id, p.gamer_tag, u.privacy_presence, MAX(mv.last_seen_at) AS last_seen_at
      FROM match_viewers mv
      JOIN users u ON u.id = mv.user_id
      LEFT JOIN players p ON p.user_id = mv.user_id
      WHERE mv.match_id = :match_id
        AND mv.user_id IS NOT NULL
        AND u.privacy_presence = 1
-       AND mv.last_seen_at >= DATE_SUB(NOW(), INTERVAL 20 SECOND)
-     GROUP BY mv.user_id
-     ORDER BY mv.last_seen_at DESC
+       AND mv.last_seen_at >= (NOW() - INTERVAL '20 seconds')
+     GROUP BY mv.user_id, p.gamer_tag, u.privacy_presence
+     ORDER BY last_seen_at DESC
      LIMIT 12`,
     { match_id: matchId }
   );
