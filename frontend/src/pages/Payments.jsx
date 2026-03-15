@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
+import { useSearchParams } from 'react-router-dom';
 
 export default function Payments() {
+  const [searchParams] = useSearchParams();
   const [payments, setPayments] = useState([]);
   const [wallet, setWallet] = useState({ balance: 0, withdrawals: [], transactions: [] });
   const [status, setStatus] = useState({ state: 'idle', message: '' });
@@ -9,6 +11,8 @@ export default function Payments() {
     amount: '',
     phone: '',
     tournament_id: '',
+    season_id: '',
+    match_id: '',
     account_reference: '',
     transaction_desc: '',
     type: 'entry_fee'
@@ -35,6 +39,23 @@ export default function Payments() {
     load();
   }, []);
 
+  useEffect(() => {
+    const tournamentId = searchParams.get('tournament_id');
+    const seasonId = searchParams.get('season_id');
+    const matchId = searchParams.get('match_id');
+    const amount = searchParams.get('amount');
+    if (tournamentId || seasonId || matchId || amount) {
+      setStkForm((prev) => ({
+        ...prev,
+        type: 'entry_fee',
+        tournament_id: tournamentId || '',
+        season_id: seasonId || '',
+        match_id: matchId || '',
+        amount: amount || prev.amount
+      }));
+    }
+  }, [searchParams]);
+
   const sendStk = async (event) => {
     event.preventDefault();
     setStatus({ state: 'loading', message: '' });
@@ -45,6 +66,12 @@ export default function Payments() {
         type: stkForm.type,
         tournament_id: stkForm.type === 'entry_fee' && stkForm.tournament_id
           ? Number(stkForm.tournament_id)
+          : undefined,
+        season_id: stkForm.type === 'entry_fee' && stkForm.season_id
+          ? Number(stkForm.season_id)
+          : undefined,
+        match_id: stkForm.type === 'entry_fee' && stkForm.match_id
+          ? Number(stkForm.match_id)
           : undefined,
         account_reference: stkForm.account_reference || undefined,
         transaction_desc: stkForm.transaction_desc || undefined
@@ -218,10 +245,20 @@ export default function Payments() {
             <input className="input" value={stkForm.phone} onChange={(e) => setStkForm((prev) => ({ ...prev, phone: e.target.value }))} required />
           </div>
           {stkForm.type === 'entry_fee' && (
-            <div>
-              <label className="label">Tournament ID</label>
-              <input className="input" value={stkForm.tournament_id} onChange={(e) => setStkForm((prev) => ({ ...prev, tournament_id: e.target.value }))} />
-            </div>
+            <>
+              <div>
+                <label className="label">Tournament ID</label>
+                <input className="input" value={stkForm.tournament_id} onChange={(e) => setStkForm((prev) => ({ ...prev, tournament_id: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Season ID</label>
+                <input className="input" value={stkForm.season_id} onChange={(e) => setStkForm((prev) => ({ ...prev, season_id: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Match ID</label>
+                <input className="input" value={stkForm.match_id} onChange={(e) => setStkForm((prev) => ({ ...prev, match_id: e.target.value }))} />
+              </div>
+            </>
           )}
           <div>
             <label className="label">Account Reference</label>

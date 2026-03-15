@@ -23,11 +23,20 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 router.post('/mpesa/stk-push', requireAuth, validate(stkPushSchema), asyncHandler(async (req, res) => {
-  const { amount, phone, tournament_id, account_reference, transaction_desc, type } = req.body;
+  const {
+    amount,
+    phone,
+    tournament_id,
+    season_id,
+    match_id,
+    account_reference,
+    transaction_desc,
+    type
+  } = req.body;
   const paymentType = type || 'entry_fee';
 
-  if (paymentType === 'entry_fee' && !tournament_id) {
-    return res.status(400).json({ error: 'tournament_required' });
+  if (paymentType === 'entry_fee' && !tournament_id && !season_id && !match_id) {
+    return res.status(400).json({ error: 'entry_target_required' });
   }
 
   const [paymentResult] = await db.query(
@@ -37,7 +46,12 @@ router.post('/mpesa/stk-push', requireAuth, validate(stkPushSchema), asyncHandle
       user_id: req.user.id,
       amount,
       type: paymentType,
-      metadata: JSON.stringify({ tournament_id: tournament_id || null, type: paymentType })
+      metadata: JSON.stringify({
+        tournament_id: tournament_id || null,
+        season_id: season_id || null,
+        match_id: match_id || null,
+        type: paymentType
+      })
     }
   );
 
@@ -136,17 +150,53 @@ router.post('/mpesa/callback', asyncHandler(async (req, res) => {
       const metaObj = payment.metadata
         ? (typeof payment.metadata === 'string' ? JSON.parse(payment.metadata) : payment.metadata)
         : {};
-      if (payment.type === 'entry_fee' && metaObj.tournament_id) {
-        await conn.execute(
-          `UPDATE tournament_entries
-           SET status = 'paid', payment_id = :payment_id
-           WHERE tournament_id = :tournament_id AND player_id = :player_id`,
-          {
-            payment_id: payment.id,
-            tournament_id: metaObj.tournament_id,
-            player_id: payment.user_id
+      if (payment.type === 'entry_fee') {
+        if (metaObj.tournament_id) {
+          const [result] = await conn.execute(
+            `UPDATE tournament_entries
+             SET status = 'paid', payment_id = :payment_id
+             WHERE tournament_id = :tournament_id AND player_id = :player_id`,
+            {
+              payment_id: payment.id,
+              tournament_id: metaObj.tournament_id,
+              player_id: payment.user_id
+            }
+          );
+          if (result.affectedRows === 0) {
+            await conn.execute(
+              `INSERT INTO tournament_entries (tournament_id, player_id, status, payment_id)
+               VALUES (:tournament_id, :player_id, 'paid', :payment_id)`,
+              {
+                tournament_id: metaObj.tournament_id,
+                player_id: payment.user_id,
+                payment_id: payment.id
+              }
+            );
           }
-        );
+        }
+        if (metaObj.season_id) {
+          const [result] = await conn.execute(
+            `UPDATE season_entries
+             SET status = 'paid', payment_id = :payment_id
+             WHERE season_id = :season_id AND player_id = :player_id`,
+            {
+              payment_id: payment.id,
+              season_id: metaObj.season_id,
+              player_id: payment.user_id
+            }
+          );
+          if (result.affectedRows === 0) {
+            await conn.execute(
+              `INSERT INTO season_entries (season_id, player_id, status, payment_id)
+               VALUES (:season_id, :player_id, 'paid', :payment_id)`,
+              {
+                season_id: metaObj.season_id,
+                player_id: payment.user_id,
+                payment_id: payment.id
+              }
+            );
+          }
+        }
       }
       if (payment.type === 'wallet_topup') {
         await conn.execute(

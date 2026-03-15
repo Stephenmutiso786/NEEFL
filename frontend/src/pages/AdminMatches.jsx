@@ -15,6 +15,7 @@ export default function AdminMatches() {
     player1_id: '',
     player2_id: '',
     referee_id: '',
+    match_fee: '',
     odds_home: '',
     odds_draw: '',
     odds_away: ''
@@ -26,7 +27,7 @@ export default function AdminMatches() {
   const [rejectForm, setRejectForm] = useState({ matchId: '', reason: '' });
   const [oddsForm, setOddsForm] = useState({ matchId: '', home: '', draw: '', away: '' });
   const [oddsCalcId, setOddsCalcId] = useState('');
-  const [editMatchForm, setEditMatchForm] = useState({ id: '', scheduled_at: '', round: '', referee_id: '', status: 'scheduled' });
+  const [editMatchForm, setEditMatchForm] = useState({ id: '', scheduled_at: '', round: '', referee_id: '', status: 'scheduled', match_fee: '' });
 
   const toDateTimeLocal = (value) => {
     if (!value) return '';
@@ -119,6 +120,7 @@ export default function AdminMatches() {
         scheduled_at: createForm.scheduled_at,
         round: createForm.round || undefined,
         referee_id: createForm.referee_id ? Number(createForm.referee_id) : undefined,
+        match_fee: createForm.match_fee ? Number(createForm.match_fee) : undefined,
         odds_home: createForm.odds_home ? Number(createForm.odds_home) : undefined,
         odds_draw: createForm.odds_draw ? Number(createForm.odds_draw) : undefined,
         odds_away: createForm.odds_away ? Number(createForm.odds_away) : undefined
@@ -133,6 +135,7 @@ export default function AdminMatches() {
         player1_id: '',
         player2_id: '',
         referee_id: '',
+        match_fee: '',
         odds_home: '',
         odds_draw: '',
         odds_away: ''
@@ -169,11 +172,12 @@ export default function AdminMatches() {
           scheduled_at: editMatchForm.scheduled_at || undefined,
           round: editMatchForm.round || undefined,
           referee_id: editMatchForm.referee_id ? Number(editMatchForm.referee_id) : undefined,
-          status: editMatchForm.status || undefined
+          status: editMatchForm.status || undefined,
+          match_fee: editMatchForm.match_fee !== '' ? Number(editMatchForm.match_fee) : undefined
         }
       });
       setStatus({ state: 'success', message: 'Match updated.' });
-      setEditMatchForm({ id: '', scheduled_at: '', round: '', referee_id: '', status: 'scheduled' });
+      setEditMatchForm({ id: '', scheduled_at: '', round: '', referee_id: '', status: 'scheduled', match_fee: '' });
       load();
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
@@ -382,6 +386,16 @@ export default function AdminMatches() {
             />
           </div>
           <div>
+            <label className="label">Match Fee (KES)</label>
+            <input
+              className="input"
+              type="number"
+              value={createForm.match_fee}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, match_fee: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
             <label className="label">Odds Draw (optional)</label>
             <input
               className="input"
@@ -434,6 +448,7 @@ export default function AdminMatches() {
                   <p className="text-xs text-ink-500">
                     Odds H {match.odds_home} · D {match.odds_draw} · A {match.odds_away}
                   </p>
+                  <p className="text-xs text-ink-500">Match Fee: KES {match.match_fee ?? 0}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link className="btn-secondary" to={`/streams?match=${match.id}`}>Stream</Link>
@@ -446,7 +461,8 @@ export default function AdminMatches() {
                         scheduled_at: toDateTimeLocal(match.scheduled_at),
                         round: match.round || '',
                         referee_id: match.referee_id ? String(match.referee_id) : '',
-                        status: match.status || 'scheduled'
+                        status: match.status || 'scheduled',
+                        match_fee: match.match_fee ?? ''
                       });
                       window.scrollTo({ top: document.body.scrollHeight / 3, behavior: 'smooth' });
                     }}
@@ -512,6 +528,15 @@ export default function AdminMatches() {
           <div>
             <label className="label">Referee ID</label>
             <input className="input" value={editMatchForm.referee_id} onChange={(e) => setEditMatchForm((prev) => ({ ...prev, referee_id: e.target.value }))} placeholder="User ID" />
+          </div>
+          <div>
+            <label className="label">Match Fee (KES)</label>
+            <input
+              className="input"
+              type="number"
+              value={editMatchForm.match_fee}
+              onChange={(e) => setEditMatchForm((prev) => ({ ...prev, match_fee: e.target.value }))}
+            />
           </div>
           <div>
             <label className="label">Status</label>

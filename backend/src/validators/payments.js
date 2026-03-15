@@ -5,6 +5,8 @@ export const stkPushSchema = z.object({
   phone: z.string().min(7),
   type: z.enum(['entry_fee', 'wallet_topup']).optional(),
   tournament_id: z.number().optional(),
+  season_id: z.number().optional(),
+  match_id: z.number().optional(),
   account_reference: z.string().min(2).optional(),
   transaction_desc: z.string().min(2).optional()
 });

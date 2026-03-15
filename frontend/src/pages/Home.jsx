@@ -116,6 +116,30 @@ export default function Home() {
 
   return (
     <div className="grid gap-8">
+      <section className="card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="label">Welcome</p>
+            <h2 className="section-title">NEEFL Kickoff Intro</h2>
+          </div>
+          <span className="chip">Autoplay · Muted</span>
+        </div>
+        <div className="mt-4 flex justify-center">
+          <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-sand-50 shadow-[0_0_40px_rgba(18,247,210,0.2)]">
+            <div className="relative aspect-video w-full">
+              <iframe
+                className="absolute inset-0 h-full w-full"
+                src="https://www.youtube.com/embed/By7ef_664qk?autoplay=1&mute=1&playsinline=1&loop=1&playlist=By7ef_664qk&rel=0&modestbranding=1"
+                title="NEEFL Welcome Video"
+                frameBorder="0"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="card relative overflow-hidden p-8">
         <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-mint-500/10 blur-2xl" />
         <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-sky-500/10 blur-2xl" />

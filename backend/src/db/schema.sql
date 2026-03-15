@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS players (
 CREATE TABLE IF NOT EXISTS seasons (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(128) NOT NULL,
+  entry_fee DECIMAL(12,2) NOT NULL DEFAULT 0,
+  prize_pool DECIMAL(12,2) NOT NULL DEFAULT 0,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   status ENUM('draft','active','completed') NOT NULL DEFAULT 'draft',
@@ -94,6 +96,19 @@ CREATE TABLE IF NOT EXISTS tournament_entries (
   CONSTRAINT fk_entries_payment FOREIGN KEY (payment_id) REFERENCES payments(id)
 );
 
+CREATE TABLE IF NOT EXISTS season_entries (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  season_id BIGINT UNSIGNED NOT NULL,
+  player_id BIGINT UNSIGNED NOT NULL,
+  status ENUM('pending','paid','approved','withdrawn') NOT NULL DEFAULT 'pending',
+  payment_id BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_season_entry (season_id, player_id),
+  CONSTRAINT fk_season_entries_season FOREIGN KEY (season_id) REFERENCES seasons(id),
+  CONSTRAINT fk_season_entries_player FOREIGN KEY (player_id) REFERENCES users(id),
+  CONSTRAINT fk_season_entries_payment FOREIGN KEY (payment_id) REFERENCES payments(id)
+);
+
 CREATE TABLE IF NOT EXISTS matches (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   tournament_id BIGINT UNSIGNED NOT NULL,
@@ -117,6 +132,7 @@ CREATE TABLE IF NOT EXISTS matches (
   betting_status ENUM('open','closed','suspended','voided') NOT NULL DEFAULT 'open',
   viewer_peak INT NOT NULL DEFAULT 0,
   viewer_total_seconds BIGINT NOT NULL DEFAULT 0,
+  match_fee DECIMAL(12,2) NOT NULL DEFAULT 0,
   odds_home DECIMAL(6,2) NOT NULL DEFAULT 1.00,
   odds_draw DECIMAL(6,2) NOT NULL DEFAULT 1.00,
   odds_away DECIMAL(6,2) NOT NULL DEFAULT 1.00,

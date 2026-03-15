@@ -35,6 +35,7 @@ export const createMatchSchema = z.object({
   referee_id: z.number().int().positive().optional(),
   round: z.string().max(64).optional(),
   scheduled_at: z.string().min(3),
+  match_fee: z.number().nonnegative(),
   odds_home: z.number().positive().optional(),
   odds_draw: z.number().positive().optional(),
   odds_away: z.number().positive().optional()
@@ -44,7 +45,8 @@ export const updateMatchSchema = z.object({
   scheduled_at: z.string().min(3).optional(),
   round: z.string().max(64).optional(),
   referee_id: z.number().int().positive().nullable().optional(),
-  status: z.enum(['scheduled', 'played', 'submitted', 'confirmed', 'disputed', 'forfeit', 'approved']).optional()
+  status: z.enum(['scheduled', 'played', 'submitted', 'confirmed', 'disputed', 'forfeit', 'approved']).optional(),
+  match_fee: z.number().nonnegative().optional()
 });
 
 export const updateOddsSchema = z.object({

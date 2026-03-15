@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, getUserRole } from '../lib/api.js';
+import { useNavigate } from 'react-router-dom';
 import Countdown from '../components/Countdown.jsx';
 
 const formatDateTime = (value) => {
@@ -12,6 +13,7 @@ const formatDateTime = (value) => {
 export default function Tournaments() {
   const role = getUserRole();
   const isAdmin = role === 'admin';
+  const navigate = useNavigate();
   const [tournaments, setTournaments] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [status, setStatus] = useState({ state: 'idle', message: '' });
@@ -50,6 +52,28 @@ export default function Tournaments() {
       const data = await api(`/api/tournaments/${id}/join`, { method: 'POST' });
       setStatus({ state: 'success', message: `Joined tournament (${data.status}).` });
     } catch (err) {
+      if (err.message === 'payment_required') {
+        const amount = err.data?.amount || 0;
+        setStatus({ state: 'error', message: `Payment required: KES ${amount}. Redirecting to payments...` });
+        navigate(`/payments?tournament_id=${id}&amount=${amount}`);
+        return;
+      }
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const onJoinSeason = async (id) => {
+    setStatus({ state: 'loading', message: '' });
+    try {
+      const data = await api(`/api/seasons/${id}/join`, { method: 'POST' });
+      setStatus({ state: 'success', message: `Joined season (${data.status}).` });
+    } catch (err) {
+      if (err.message === 'payment_required') {
+        const amount = err.data?.amount || 0;
+        setStatus({ state: 'error', message: `Season payment required: KES ${amount}. Redirecting to payments...` });
+        navigate(`/payments?season_id=${id}&amount=${amount}`);
+        return;
+      }
       setStatus({ state: 'error', message: err.message });
     }
   };
@@ -112,12 +136,19 @@ export default function Tournaments() {
                   <p className="text-sm font-semibold text-ink-900">{season.name}</p>
                   <p className="text-xs text-ink-500">Status: {season.status}</p>
                 </div>
-                <Countdown target={season.start_date} />
+                <span className="chip">KES {season.entry_fee ?? 0}</span>
               </div>
               <div className="mt-3 grid gap-1 text-xs text-ink-500">
                 <span>Start: {formatDateTime(season.start_date)}</span>
                 <span>End: {formatDateTime(season.end_date)}</span>
               </div>
+              <div className="mt-2 flex items-center justify-between text-xs text-ink-500">
+                <Countdown target={season.start_date} />
+                <span>Prize: KES {season.prize_pool ?? 0}</span>
+              </div>
+              <button className="btn-secondary mt-3" type="button" onClick={() => onJoinSeason(season.id)}>
+                Join Season
+              </button>
             </div>
           ))}
           {!seasons.length && (
@@ -173,11 +204,11 @@ export default function Tournaments() {
             </div>
             <div>
               <label className="label">Entry Fee (KES)</label>
-              <input className="input" type="number" value={createForm.entry_fee} onChange={(e) => setCreateForm((prev) => ({ ...prev, entry_fee: e.target.value }))} />
+              <input className="input" type="number" value={createForm.entry_fee} onChange={(e) => setCreateForm((prev) => ({ ...prev, entry_fee: e.target.value }))} required />
             </div>
             <div>
               <label className="label">Prize Pool (KES)</label>
-              <input className="input" type="number" value={createForm.prize_pool} onChange={(e) => setCreateForm((prev) => ({ ...prev, prize_pool: e.target.value }))} />
+              <input className="input" type="number" value={createForm.prize_pool} onChange={(e) => setCreateForm((prev) => ({ ...prev, prize_pool: e.target.value }))} required />
             </div>
             <div>
               <label className="label">Start Date</label>

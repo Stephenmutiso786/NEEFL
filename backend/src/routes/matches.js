@@ -15,7 +15,7 @@ const router = Router();
 router.get('/:id', asyncHandler(async (req, res) => {
   const [rows] = await db.query(
     `SELECT m.id, m.tournament_id, m.round, m.player1_id, m.player2_id, m.referee_id, m.scheduled_at, m.status,
-            m.score1, m.score2, m.winner_id, m.odds_home, m.odds_draw, m.odds_away,
+            m.score1, m.score2, m.winner_id, m.match_fee, m.odds_home, m.odds_draw, m.odds_away,
             m.live_status, m.live_phase, m.live_timer_mode, m.live_timer_started_at, m.live_timer_offset_seconds,
             m.betting_status, m.viewer_peak, m.viewer_total_seconds,
             t.name as tournament_name,

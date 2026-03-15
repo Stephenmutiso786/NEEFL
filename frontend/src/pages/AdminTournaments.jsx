@@ -29,8 +29,8 @@ export default function AdminTournaments() {
     status: 'open'
   });
   const [scheduleForm, setScheduleForm] = useState({ id: '', start_datetime: '', match_time: '18:00', days_between_rounds: 1 });
-  const [seasonForm, setSeasonForm] = useState({ name: '', start_date: '', end_date: '', status: 'draft' });
-  const [seasonUpdateForm, setSeasonUpdateForm] = useState({ id: '', name: '', start_date: '', end_date: '', status: 'draft' });
+  const [seasonForm, setSeasonForm] = useState({ name: '', entry_fee: 0, prize_pool: 0, start_date: '', end_date: '', status: 'draft' });
+  const [seasonUpdateForm, setSeasonUpdateForm] = useState({ id: '', name: '', entry_fee: '', prize_pool: '', start_date: '', end_date: '', status: 'draft' });
 
   const load = () => {
     api('/api/admin/tournaments')
@@ -155,10 +155,14 @@ export default function AdminTournaments() {
     try {
       await api('/api/seasons', {
         method: 'POST',
-        body: seasonForm
+        body: {
+          ...seasonForm,
+          entry_fee: Number(seasonForm.entry_fee),
+          prize_pool: Number(seasonForm.prize_pool)
+        }
       });
       setStatus({ state: 'success', message: 'Season created.' });
-      setSeasonForm({ name: '', start_date: '', end_date: '', status: 'draft' });
+      setSeasonForm({ name: '', entry_fee: 0, prize_pool: 0, start_date: '', end_date: '', status: 'draft' });
       load();
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
@@ -173,13 +177,15 @@ export default function AdminTournaments() {
         method: 'PUT',
         body: {
           name: seasonUpdateForm.name || undefined,
+          entry_fee: seasonUpdateForm.entry_fee !== '' ? Number(seasonUpdateForm.entry_fee) : undefined,
+          prize_pool: seasonUpdateForm.prize_pool !== '' ? Number(seasonUpdateForm.prize_pool) : undefined,
           start_date: seasonUpdateForm.start_date || undefined,
           end_date: seasonUpdateForm.end_date || undefined,
           status: seasonUpdateForm.status || undefined
         }
       });
       setStatus({ state: 'success', message: 'Season updated.' });
-      setSeasonUpdateForm({ id: '', name: '', start_date: '', end_date: '', status: 'draft' });
+      setSeasonUpdateForm({ id: '', name: '', entry_fee: '', prize_pool: '', start_date: '', end_date: '', status: 'draft' });
       load();
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
@@ -215,11 +221,11 @@ export default function AdminTournaments() {
           </div>
           <div>
             <label className="label">Entry Fee</label>
-            <input className="input" type="number" value={createForm.entry_fee} onChange={(e) => setCreateForm((prev) => ({ ...prev, entry_fee: e.target.value }))} />
+            <input className="input" type="number" value={createForm.entry_fee} onChange={(e) => setCreateForm((prev) => ({ ...prev, entry_fee: e.target.value }))} required />
           </div>
           <div>
             <label className="label">Prize Pool</label>
-            <input className="input" type="number" value={createForm.prize_pool} onChange={(e) => setCreateForm((prev) => ({ ...prev, prize_pool: e.target.value }))} />
+            <input className="input" type="number" value={createForm.prize_pool} onChange={(e) => setCreateForm((prev) => ({ ...prev, prize_pool: e.target.value }))} required />
           </div>
           <div>
             <label className="label">Start Date</label>
@@ -247,6 +253,14 @@ export default function AdminTournaments() {
             <div>
               <label className="label">Name</label>
               <input className="input" value={seasonForm.name} onChange={(e) => setSeasonForm((prev) => ({ ...prev, name: e.target.value }))} required />
+            </div>
+            <div>
+              <label className="label">Entry Fee (KES)</label>
+              <input className="input" type="number" value={seasonForm.entry_fee} onChange={(e) => setSeasonForm((prev) => ({ ...prev, entry_fee: e.target.value }))} required />
+            </div>
+            <div>
+              <label className="label">Prize Pool (KES)</label>
+              <input className="input" type="number" value={seasonForm.prize_pool} onChange={(e) => setSeasonForm((prev) => ({ ...prev, prize_pool: e.target.value }))} required />
             </div>
             <div>
               <label className="label">Start Date</label>
@@ -278,6 +292,14 @@ export default function AdminTournaments() {
               <input className="input" value={seasonUpdateForm.name} onChange={(e) => setSeasonUpdateForm((prev) => ({ ...prev, name: e.target.value }))} />
             </div>
             <div>
+              <label className="label">Entry Fee (KES)</label>
+              <input className="input" type="number" value={seasonUpdateForm.entry_fee} onChange={(e) => setSeasonUpdateForm((prev) => ({ ...prev, entry_fee: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">Prize Pool (KES)</label>
+              <input className="input" type="number" value={seasonUpdateForm.prize_pool} onChange={(e) => setSeasonUpdateForm((prev) => ({ ...prev, prize_pool: e.target.value }))} />
+            </div>
+            <div>
               <label className="label">Start Date</label>
               <input className="input" type="date" value={seasonUpdateForm.start_date} onChange={(e) => setSeasonUpdateForm((prev) => ({ ...prev, start_date: e.target.value }))} />
             </div>
@@ -301,6 +323,7 @@ export default function AdminTournaments() {
             <div key={season.id} className="rounded-2xl border border-sand-200 bg-sand-50 p-4 text-sm">
               <p className="font-semibold text-ink-900">{season.name}</p>
               <p className="text-xs text-ink-500">{season.start_date} → {season.end_date} · {season.status}</p>
+              <p className="text-xs text-ink-500">Entry: KES {season.entry_fee ?? 0} · Prize: KES {season.prize_pool ?? 0}</p>
             </div>
           ))}
           {!seasons.length && (

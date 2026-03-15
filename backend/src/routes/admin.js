@@ -333,6 +333,7 @@ router.post('/matches', validate(createMatchSchema), asyncHandler(async (req, re
     referee_id,
     round,
     scheduled_at,
+    match_fee,
     odds_home,
     odds_draw,
     odds_away
@@ -395,11 +396,11 @@ router.post('/matches', validate(createMatchSchema), asyncHandler(async (req, re
 
   const [result] = await db.query(
     `INSERT INTO matches (
-        tournament_id, round, player1_id, player2_id, referee_id, scheduled_at, status, odds_home, odds_draw, odds_away
+        tournament_id, round, player1_id, player2_id, referee_id, scheduled_at, status, match_fee, odds_home, odds_draw, odds_away
      )
      VALUES (
         :tournament_id, :round, :player1_id, :player2_id, :referee_id, :scheduled_at,
-        'scheduled', :odds_home, :odds_draw, :odds_away
+        'scheduled', :match_fee, :odds_home, :odds_draw, :odds_away
      )`,
     {
       tournament_id,
@@ -408,6 +409,7 @@ router.post('/matches', validate(createMatchSchema), asyncHandler(async (req, re
       player2_id,
       referee_id: referee_id || null,
       scheduled_at: scheduledAt,
+      match_fee: match_fee ?? 0,
       odds_home: odds_home ?? 1,
       odds_draw: odds_draw ?? 1,
       odds_away: odds_away ?? 1
@@ -439,7 +441,7 @@ router.get('/matches', asyncHandler(async (req, res) => {
 
   const [rows] = await db.query(
     `SELECT m.id, m.tournament_id, m.round, m.player1_id, m.player2_id, m.scheduled_at, m.status, m.score1, m.score2,
-            m.referee_id,
+            m.referee_id, m.match_fee,
             m.odds_home, m.odds_draw, m.odds_away,
             p1.gamer_tag as player1_tag,
             p2.gamer_tag as player2_tag,
@@ -459,7 +461,7 @@ router.get('/matches', asyncHandler(async (req, res) => {
 
 router.put('/matches/:id', validate(updateMatchSchema), asyncHandler(async (req, res) => {
   const matchId = Number(req.params.id);
-  const { scheduled_at, round, referee_id, status } = req.body;
+  const { scheduled_at, round, referee_id, status, match_fee } = req.body;
 
   const updates = [];
   const params = { id: matchId };
@@ -503,6 +505,11 @@ router.put('/matches/:id', validate(updateMatchSchema), asyncHandler(async (req,
   if (status !== undefined) {
     updates.push('status = :status');
     params.status = status;
+  }
+
+  if (match_fee !== undefined) {
+    updates.push('match_fee = :match_fee');
+    params.match_fee = match_fee;
   }
 
   if (!updates.length) {
