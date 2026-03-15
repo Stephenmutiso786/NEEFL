@@ -2,18 +2,17 @@ version: "3.8"
 
 services:
   db:
-    image: mysql:8.0
-    container_name: neefl-mysql
+    image: postgres:16-alpine
+    container_name: neefl-postgres
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: neefl
-      MYSQL_USER: neefl
-      MYSQL_PASSWORD: neefl
-      MYSQL_ROOT_PASSWORD: root
+      POSTGRES_DB: neefl
+      POSTGRES_USER: neefl
+      POSTGRES_PASSWORD: neefl
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - neefl_mysql:/var/lib/mysql
+      - neefl_pg:/var/lib/postgresql/data
 
 volumes:
-  neefl_mysql:
+  neefl_pg:

@@ -1,16 +1,11 @@
 services:
   - type: web
-    name: neefl-api
+    name: neefl-web
     runtime: node
     rootDir: backend
-    plan: starter
     buildCommand: npm install && npm run build:web
     startCommand: npm start
     healthCheckPath: /health
-    disk:
-      name: uploads
-      mountPath: /opt/render/project/src/backend/uploads
-      sizeGB: 5
     envVars:
       - key: NODE_ENV
         value: production
@@ -18,79 +13,9 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: JWT_EXPIRES_IN
-        value: 7d
-      - key: ADMIN_SECURITY_CODE
-        sync: false
-      - key: LOGIN_MAX_ATTEMPTS
-        value: "5"
-      - key: LOGIN_LOCK_MINUTES
-        value: "15"
-      - key: DB_HOST
-        sync: false
-      - key: DB_PORT
-        value: "5432"
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_NAME
+      - key: DATABASE_URL
         sync: false
       - key: DB_SSL
-        value: "false"
-      - key: DB_SSL_CA
-        sync: false
-      - key: DB_SSL_CA_BASE64
-        sync: false
-      - key: DB_SSL_REJECT_UNAUTHORIZED
         value: "true"
-      - key: UPLOAD_DIR
-        value: /opt/render/project/src/backend/uploads
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
-        sync: false
-      - key: SMTP_FROM
-        value: no-reply@neefl.local
-      - key: SMS_WEBHOOK_URL
-        sync: false
-      - key: SMS_WEBHOOK_TOKEN
-        sync: false
-      - key: MPESA_ENV
-        value: production
-      - key: MPESA_BASE_URL
-        sync: false
-      - key: MPESA_OAUTH_URL
-        sync: false
-      - key: MPESA_STK_PUSH_URL
-        sync: false
-      - key: MPESA_B2C_URL
-        sync: false
-      - key: MPESA_CONSUMER_KEY
-        sync: false
-      - key: MPESA_CONSUMER_SECRET
-        sync: false
-      - key: MPESA_SHORTCODE
-        sync: false
-      - key: MPESA_PASSKEY
-        sync: false
-      - key: MPESA_CALLBACK_URL
-        sync: false
-      - key: MPESA_ACCOUNT_REFERENCE
-        value: NEEFL
-      - key: MPESA_TRANSACTION_DESC
-        value: NEEFL Entry Fee
-      - key: MPESA_B2C_SHORTCODE
-        sync: false
-      - key: MPESA_B2C_INITIATOR_NAME
-        sync: false
-      - key: MPESA_B2C_SECURITY_CREDENTIAL
-        sync: false
-      - key: MPESA_TIMEOUT_URL
-        sync: false
-      - key: MPESA_RESULT_URL
-        sync: false
+      - key: DB_SSL_REJECT_UNAUTHORIZED
+        value: "false"
