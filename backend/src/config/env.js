@@ -1,0 +1,74 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+function getEnv(key, fallback = undefined) {
+  const value = process.env[key];
+  if (value === undefined || value === '') {
+    return fallback;
+  }
+  return value;
+}
+
+function requireEnv(key) {
+  const value = getEnv(key);
+  if (value === undefined) {
+    throw new Error(`Missing required env: ${key}`);
+  }
+  return value;
+}
+
+export const env = {
+  nodeEnv: getEnv('NODE_ENV', 'development'),
+  port: Number(getEnv('PORT', '8080')),
+  baseUrl: getEnv('BASE_URL', 'http://localhost:8080'),
+
+  jwtSecret: requireEnv('JWT_SECRET'),
+  jwtExpiresIn: getEnv('JWT_EXPIRES_IN', '7d'),
+  adminSecurityCode: getEnv('ADMIN_SECURITY_CODE'),
+  loginMaxAttempts: Number(getEnv('LOGIN_MAX_ATTEMPTS', '5')),
+  loginLockMinutes: Number(getEnv('LOGIN_LOCK_MINUTES', '15')),
+
+  db: {
+    host: getEnv('DB_HOST', '127.0.0.1'),
+    port: Number(getEnv('DB_PORT', '3306')),
+    user: getEnv('DB_USER', 'neefl'),
+    password: getEnv('DB_PASSWORD', 'neefl'),
+    name: getEnv('DB_NAME', 'neefl')
+  },
+
+  uploadDir: getEnv('UPLOAD_DIR', 'uploads'),
+
+  smtp: {
+    host: getEnv('SMTP_HOST'),
+    port: Number(getEnv('SMTP_PORT', '587')),
+    user: getEnv('SMTP_USER'),
+    pass: getEnv('SMTP_PASS'),
+    from: getEnv('SMTP_FROM', 'no-reply@neefl.local')
+  },
+
+  sms: {
+    webhookUrl: getEnv('SMS_WEBHOOK_URL'),
+    token: getEnv('SMS_WEBHOOK_TOKEN')
+  },
+
+  mpesa: {
+    env: getEnv('MPESA_ENV', 'production'),
+    baseUrl: getEnv('MPESA_BASE_URL'),
+    oauthUrl: getEnv('MPESA_OAUTH_URL'),
+    stkPushUrl: getEnv('MPESA_STK_PUSH_URL'),
+    b2cUrl: getEnv('MPESA_B2C_URL'),
+    consumerKey: getEnv('MPESA_CONSUMER_KEY'),
+    consumerSecret: getEnv('MPESA_CONSUMER_SECRET'),
+    shortcode: getEnv('MPESA_SHORTCODE'),
+    passkey: getEnv('MPESA_PASSKEY'),
+    callbackUrl: getEnv('MPESA_CALLBACK_URL'),
+    accountReference: getEnv('MPESA_ACCOUNT_REFERENCE', 'NEEFL'),
+    transactionDesc: getEnv('MPESA_TRANSACTION_DESC', 'NEEFL Entry Fee'),
+    b2cShortcode: getEnv('MPESA_B2C_SHORTCODE'),
+    b2cInitiatorName: getEnv('MPESA_B2C_INITIATOR_NAME'),
+    b2cSecurityCredential: getEnv('MPESA_B2C_SECURITY_CREDENTIAL'),
+    timeoutUrl: getEnv('MPESA_TIMEOUT_URL'),
+    resultUrl: getEnv('MPESA_RESULT_URL')
+  }
+};
