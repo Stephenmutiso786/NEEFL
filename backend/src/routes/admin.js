@@ -56,12 +56,12 @@ async function collectMatchUserIds(matchId) {
 }
 
 router.get('/dashboard', asyncHandler(async (req, res) => {
-  const [[players]] = await db.query(\"SELECT COUNT(*) as count FROM users WHERE role = 'player'\");
+  const [[players]] = await db.query(`SELECT COUNT(*) as count FROM users WHERE role = 'player'`);
   const [[tournaments]] = await db.query('SELECT COUNT(*) as count FROM tournaments');
-  const [[matches]] = await db.query(\"SELECT COUNT(*) as count FROM matches WHERE status IN ('scheduled','submitted','confirmed','disputed')\");
-  const [[disputes]] = await db.query(\"SELECT COUNT(*) as count FROM disputes WHERE status = 'open'\");
-  const [[payments]] = await db.query(\"SELECT SUM(amount) as total FROM payments WHERE status = 'paid'\");
-  const [[withdrawals]] = await db.query(\"SELECT COUNT(*) as count FROM withdrawal_requests WHERE status IN ('pending','approved')\");
+  const [[matches]] = await db.query(`SELECT COUNT(*) as count FROM matches WHERE status IN ('scheduled','submitted','confirmed','disputed')`);
+  const [[disputes]] = await db.query(`SELECT COUNT(*) as count FROM disputes WHERE status = 'open'`);
+  const [[payments]] = await db.query(`SELECT SUM(amount) as total FROM payments WHERE status = 'paid'`);
+  const [[withdrawals]] = await db.query(`SELECT COUNT(*) as count FROM withdrawal_requests WHERE status IN ('pending','approved')`);
 
   res.json({
     players: players.count,
@@ -129,7 +129,7 @@ router.put('/players/:id', validate(updateProfileSchema), asyncHandler(async (re
 
 router.post('/users/:id/approve', asyncHandler(async (req, res) => {
   await db.query(
-    \"UPDATE users SET status = 'active' WHERE id = :id\",
+    `UPDATE users SET status = 'active' WHERE id = :id`,
     { id: req.params.id }
   );
   await notifyUsers(db, [Number(req.params.id)], 'user_approved', { user_id: Number(req.params.id) });
@@ -146,7 +146,7 @@ router.post('/users/:id/approve', asyncHandler(async (req, res) => {
 
 router.post('/users/:id/ban', asyncHandler(async (req, res) => {
   await db.query(
-    \"UPDATE users SET status = 'banned' WHERE id = :id\",
+    `UPDATE users SET status = 'banned' WHERE id = :id`,
     { id: req.params.id }
   );
   await notifyUsers(db, [Number(req.params.id)], 'user_banned', { user_id: Number(req.params.id) });
@@ -980,7 +980,7 @@ router.get('/matches/:id/viewers', asyncHandler(async (req, res) => {
 
 router.get('/featured-match', asyncHandler(async (req, res) => {
   const [[row]] = await db.query(
-    \"SELECT setting_value FROM platform_settings WHERE setting_key = 'featured_match_id'\"
+    `SELECT setting_value FROM platform_settings WHERE setting_key = 'featured_match_id'`
   );
   res.json({ match_id: row ? Number(row.setting_value) : null });
 }));

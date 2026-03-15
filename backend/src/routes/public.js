@@ -94,7 +94,7 @@ router.get('/overview', asyncHandler(async (req, res) => {
 
 router.get('/featured-match', asyncHandler(async (req, res) => {
   const [[row]] = await db.query(
-    \"SELECT setting_value FROM platform_settings WHERE setting_key = 'featured_match_id'\"
+    `SELECT setting_value FROM platform_settings WHERE setting_key = 'featured_match_id'`
   );
   res.json({ match_id: row ? Number(row.setting_value) : null });
 }));

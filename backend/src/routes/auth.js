@@ -104,7 +104,7 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
   const token = signToken({ sub: userId, role: userRole });
 
   const [[admins]] = await db.query(
-    \"SELECT STRING_AGG(id::text, ',') AS ids FROM users WHERE role = 'admin' AND status = 'active'\"
+    `SELECT STRING_AGG(id::text, ',') AS ids FROM users WHERE role = 'admin' AND status = 'active'`
   );
   const adminIds = admins?.ids ? admins.ids.split(',').map((id) => Number(id)) : [];
   if (adminIds.length) {

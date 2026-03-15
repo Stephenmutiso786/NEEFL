@@ -27,7 +27,7 @@ router.post('/', requireAuth, validate(supportTicketSchema), asyncHandler(async 
   );
 
   const [[admins]] = await db.query(
-    \"SELECT STRING_AGG(id::text, ',') AS ids FROM users WHERE role = 'admin' AND status = 'active'\"
+    `SELECT STRING_AGG(id::text, ',') AS ids FROM users WHERE role = 'admin' AND status = 'active'`
   );
   const adminIds = admins?.ids ? admins.ids.split(',').map((id) => Number(id)) : [];
 
