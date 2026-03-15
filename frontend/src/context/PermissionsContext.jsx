@@ -11,6 +11,7 @@ const DEFAULT_ROLE_PERMISSIONS = {
     betting: true,
     wallet: true,
     community: true,
+    messages: true,
     clubs: true,
     disputes: true,
     support: true,
@@ -25,6 +26,7 @@ const DEFAULT_ROLE_PERMISSIONS = {
     betting: true,
     wallet: true,
     community: true,
+    messages: true,
     clubs: true,
     disputes: true,
     support: true,
@@ -39,6 +41,7 @@ const DEFAULT_ROLE_PERMISSIONS = {
     betting: true,
     wallet: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -51,6 +54,7 @@ const DEFAULT_ROLE_PERMISSIONS = {
     betting: true,
     wallet: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -63,6 +67,7 @@ const DEFAULT_ROLE_PERMISSIONS = {
     streams: true,
     disputes: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -74,6 +79,7 @@ const DEFAULT_ROLE_PERMISSIONS = {
     streams: true,
     disputes: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -85,6 +91,7 @@ const DEFAULT_ROLE_PERMISSIONS = {
     streams: true,
     disputes: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -155,4 +162,3 @@ export function PermissionsProvider({ children }) {
 export function usePermissions() {
   return useContext(PermissionsContext);
 }
-

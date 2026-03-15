@@ -70,7 +70,7 @@ router.post('/results/:matchId/approve', validate(approveResultSchema), asyncHan
   const matchId = Number(req.params.matchId);
 
   const [rows] = await db.query(
-    `SELECT m.id, m.player1_id, m.player2_id,
+    `SELECT m.id, m.player1_id, m.player2_id, m.status, m.match_fee,
             r.id as result_id, r.score1, r.score2
      FROM matches m
      JOIN match_results r ON r.match_id = m.id
@@ -84,6 +84,9 @@ router.post('/results/:matchId/approve', validate(approveResultSchema), asyncHan
   }
 
   const match = rows[0];
+  if (match.status === 'approved') {
+    return res.status(400).json({ error: 'already_approved' });
+  }
   let winnerId = null;
   if (match.score1 > match.score2) {
     winnerId = match.player1_id;
@@ -118,6 +121,24 @@ router.post('/results/:matchId/approve', validate(approveResultSchema), asyncHan
       score1: match.score1,
       score2: match.score2
     });
+
+    if (winnerId && Number(match.match_fee) > 0) {
+      await conn.execute(
+        `INSERT INTO wallets (user_id, balance)
+         VALUES (:user_id, 0)
+         ON CONFLICT (user_id) DO NOTHING`,
+        { user_id: winnerId }
+      );
+      await conn.execute(
+        `UPDATE wallets SET balance = balance + :amount WHERE user_id = :user_id`,
+        { amount: match.match_fee, user_id: winnerId }
+      );
+      await conn.execute(
+        `INSERT INTO wallet_transactions (user_id, amount, type, reference_payment_id)
+         VALUES (:user_id, :amount, 'credit', NULL)`,
+        { user_id: winnerId, amount: match.match_fee }
+      );
+    }
   });
 
   await notifyUsers(db, [match.player1_id, match.player2_id], 'result_approved', {

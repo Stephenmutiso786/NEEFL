@@ -5,7 +5,14 @@ import { useSearchParams } from 'react-router-dom';
 export default function Payments() {
   const [searchParams] = useSearchParams();
   const [payments, setPayments] = useState([]);
-  const [wallet, setWallet] = useState({ balance: 0, withdrawals: [], transactions: [] });
+  const [wallet, setWallet] = useState({ balance: 0, withdrawals: [], transactions: [], topups: [] });
+  const [paymentInfo, setPaymentInfo] = useState({
+    paybill: '',
+    till: '',
+    account_name: '',
+    instructions: '',
+    manual_only: true
+  });
   const [status, setStatus] = useState({ state: 'idle', message: '' });
   const [stkForm, setStkForm] = useState({
     amount: '',
@@ -25,13 +32,28 @@ export default function Payments() {
     occasion: ''
   });
   const [withdrawForm, setWithdrawForm] = useState({ amount: '', phone: '', notes: '' });
+  const [topupForm, setTopupForm] = useState({ amount: '', reference: '', sender_name: '', phone: '', receipt_url: '' });
 
   const load = () => {
     api('/api/payments/me')
       .then((data) => setPayments(data.payments || []))
       .catch((err) => setStatus({ state: 'error', message: err.message }));
     api('/api/wallet/me')
-      .then((data) => setWallet({ balance: data.balance, withdrawals: data.withdrawals || [], transactions: data.transactions || [] }))
+      .then((data) => setWallet({
+        balance: data.balance,
+        withdrawals: data.withdrawals || [],
+        transactions: data.transactions || [],
+        topups: data.topups || []
+      }))
+      .catch(() => {});
+    api('/api/public/payment-info', { auth: false })
+      .then((data) => setPaymentInfo({
+        paybill: data.paybill || '',
+        till: data.till || '',
+        account_name: data.account_name || '',
+        instructions: data.instructions || '',
+        manual_only: data.manual_only !== false
+      }))
       .catch(() => {});
   };
 
@@ -123,8 +145,44 @@ export default function Payments() {
     }
   };
 
+  const requestTopup = async (event) => {
+    event.preventDefault();
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api('/api/wallet/topups', {
+        method: 'POST',
+        body: {
+          amount: Number(topupForm.amount),
+          method: 'manual',
+          reference: topupForm.reference || undefined,
+          sender_name: topupForm.sender_name || undefined,
+          phone: topupForm.phone || undefined,
+          receipt_url: topupForm.receipt_url || undefined
+        }
+      });
+      setStatus({ state: 'success', message: 'Top-up request submitted.' });
+      setTopupForm({ amount: '', reference: '', sender_name: '', phone: '', receipt_url: '' });
+      load();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
   return (
     <div className="grid gap-6">
+      <section className="card p-6">
+        <h3 className="section-title">Manual Entry Fee Payments</h3>
+        <p className="section-subtitle">Players pay via Paybill/Till, then an admin approves their entry.</p>
+        <div className="mt-4 grid gap-2 text-sm text-ink-700">
+          {paymentInfo.paybill && <p>Paybill: <span className="font-semibold text-ink-900">{paymentInfo.paybill}</span></p>}
+          {paymentInfo.till && <p>Till: <span className="font-semibold text-ink-900">{paymentInfo.till}</span></p>}
+          {paymentInfo.account_name && (
+            <p>Account/Reference: <span className="font-semibold text-ink-900">{paymentInfo.account_name}</span></p>
+          )}
+          <p>{paymentInfo.instructions || 'After payment, the admin approves your tournament or season entry.'}</p>
+        </div>
+      </section>
+
       <section className="card p-6">
         <h3 className="section-title">Wallet & Payments</h3>
         <p className="section-subtitle">Real M-Pesa transactions and reconciliation.</p>
@@ -161,6 +219,72 @@ export default function Payments() {
           </table>
           {!payments.length && (
             <p className="mt-4 text-sm text-ink-500">No payments yet.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="card p-6">
+        <h3 className="section-title">Manual Wallet Deposit</h3>
+        <p className="section-subtitle">Deposit via Paybill/Till, then submit the details for admin approval.</p>
+        <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={requestTopup}>
+          <div>
+            <label className="label">Amount (KES)</label>
+            <input
+              className="input"
+              type="number"
+              value={topupForm.amount}
+              onChange={(e) => setTopupForm((prev) => ({ ...prev, amount: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Payment Reference</label>
+            <input
+              className="input"
+              value={topupForm.reference}
+              onChange={(e) => setTopupForm((prev) => ({ ...prev, reference: e.target.value }))}
+              placeholder="Mpesa code or receipt reference"
+            />
+          </div>
+          <div>
+            <label className="label">Sender Name</label>
+            <input
+              className="input"
+              value={topupForm.sender_name}
+              onChange={(e) => setTopupForm((prev) => ({ ...prev, sender_name: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="label">Phone</label>
+            <input
+              className="input"
+              value={topupForm.phone}
+              onChange={(e) => setTopupForm((prev) => ({ ...prev, phone: e.target.value }))}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="label">Receipt URL (optional)</label>
+            <input
+              className="input"
+              value={topupForm.receipt_url}
+              onChange={(e) => setTopupForm((prev) => ({ ...prev, receipt_url: e.target.value }))}
+              placeholder="Link to screenshot/receipt"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <button className="btn-secondary" type="submit">Submit Deposit</button>
+          </div>
+        </form>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {wallet.topups.map((topup) => (
+            <div key={topup.id} className="rounded-2xl border border-sand-200 bg-sand-50 p-4 text-sm">
+              <p className="font-semibold text-ink-900">KES {topup.amount}</p>
+              <p className="text-xs text-ink-500">Status: {topup.status}</p>
+              <p className="text-xs text-ink-500">Ref: {topup.reference || '-'}</p>
+            </div>
+          ))}
+          {!wallet.topups.length && (
+            <p className="text-sm text-ink-500">No deposit requests yet.</p>
           )}
         </div>
       </section>
@@ -222,59 +346,61 @@ export default function Payments() {
         </div>
       </section>
 
-      <section className="card p-6">
-        <h3 className="section-title">M-Pesa STK Push</h3>
-        <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={sendStk}>
-          <div>
-            <label className="label">Payment Type</label>
-            <select
-              className="input"
-              value={stkForm.type}
-              onChange={(e) => setStkForm((prev) => ({ ...prev, type: e.target.value }))}
-            >
-              <option value="entry_fee">Tournament Entry</option>
-              <option value="wallet_topup">Wallet Top Up</option>
-            </select>
-          </div>
-          <div>
-            <label className="label">Amount (KES)</label>
-            <input className="input" type="number" value={stkForm.amount} onChange={(e) => setStkForm((prev) => ({ ...prev, amount: e.target.value }))} required />
-          </div>
-          <div>
-            <label className="label">Phone</label>
-            <input className="input" value={stkForm.phone} onChange={(e) => setStkForm((prev) => ({ ...prev, phone: e.target.value }))} required />
-          </div>
-          {stkForm.type === 'entry_fee' && (
-            <>
-              <div>
-                <label className="label">Tournament ID</label>
-                <input className="input" value={stkForm.tournament_id} onChange={(e) => setStkForm((prev) => ({ ...prev, tournament_id: e.target.value }))} />
-              </div>
-              <div>
-                <label className="label">Season ID</label>
-                <input className="input" value={stkForm.season_id} onChange={(e) => setStkForm((prev) => ({ ...prev, season_id: e.target.value }))} />
-              </div>
-              <div>
-                <label className="label">Match ID</label>
-                <input className="input" value={stkForm.match_id} onChange={(e) => setStkForm((prev) => ({ ...prev, match_id: e.target.value }))} />
-              </div>
-            </>
-          )}
-          <div>
-            <label className="label">Account Reference</label>
-            <input className="input" value={stkForm.account_reference} onChange={(e) => setStkForm((prev) => ({ ...prev, account_reference: e.target.value }))} />
-          </div>
-          <div className="md:col-span-2">
-            <label className="label">Transaction Description</label>
-            <input className="input" value={stkForm.transaction_desc} onChange={(e) => setStkForm((prev) => ({ ...prev, transaction_desc: e.target.value }))} />
-          </div>
-          <div className="md:col-span-2">
-            <button className="btn-primary" type="submit">
-              {stkForm.type === 'entry_fee' ? 'Pay Entry Fee' : 'Top Up Wallet'}
-            </button>
-          </div>
-        </form>
-      </section>
+      {!paymentInfo.manual_only && (
+        <section className="card p-6">
+          <h3 className="section-title">M-Pesa STK Push</h3>
+          <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={sendStk}>
+            <div>
+              <label className="label">Payment Type</label>
+              <select
+                className="input"
+                value={stkForm.type}
+                onChange={(e) => setStkForm((prev) => ({ ...prev, type: e.target.value }))}
+              >
+                <option value="entry_fee">Tournament Entry</option>
+                <option value="wallet_topup">Wallet Top Up</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Amount (KES)</label>
+              <input className="input" type="number" value={stkForm.amount} onChange={(e) => setStkForm((prev) => ({ ...prev, amount: e.target.value }))} required />
+            </div>
+            <div>
+              <label className="label">Phone</label>
+              <input className="input" value={stkForm.phone} onChange={(e) => setStkForm((prev) => ({ ...prev, phone: e.target.value }))} required />
+            </div>
+            {stkForm.type === 'entry_fee' && (
+              <>
+                <div>
+                  <label className="label">Tournament ID</label>
+                  <input className="input" value={stkForm.tournament_id} onChange={(e) => setStkForm((prev) => ({ ...prev, tournament_id: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">Season ID</label>
+                  <input className="input" value={stkForm.season_id} onChange={(e) => setStkForm((prev) => ({ ...prev, season_id: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">Match ID</label>
+                  <input className="input" value={stkForm.match_id} onChange={(e) => setStkForm((prev) => ({ ...prev, match_id: e.target.value }))} />
+                </div>
+              </>
+            )}
+            <div>
+              <label className="label">Account Reference</label>
+              <input className="input" value={stkForm.account_reference} onChange={(e) => setStkForm((prev) => ({ ...prev, account_reference: e.target.value }))} />
+            </div>
+            <div className="md:col-span-2">
+              <label className="label">Transaction Description</label>
+              <input className="input" value={stkForm.transaction_desc} onChange={(e) => setStkForm((prev) => ({ ...prev, transaction_desc: e.target.value }))} />
+            </div>
+            <div className="md:col-span-2">
+              <button className="btn-primary" type="submit">
+                {stkForm.type === 'entry_fee' ? 'Pay Entry Fee' : 'Top Up Wallet'}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <section className="card p-6">
         <h3 className="section-title">Prize Payout (Admin)</h3>

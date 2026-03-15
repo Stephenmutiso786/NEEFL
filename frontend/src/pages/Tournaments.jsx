@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { api, getUserRole } from '../lib/api.js';
-import { useNavigate } from 'react-router-dom';
 import Countdown from '../components/Countdown.jsx';
 
 const formatDateTime = (value) => {
@@ -13,9 +12,15 @@ const formatDateTime = (value) => {
 export default function Tournaments() {
   const role = getUserRole();
   const isAdmin = role === 'admin';
-  const navigate = useNavigate();
   const [tournaments, setTournaments] = useState([]);
   const [seasons, setSeasons] = useState([]);
+  const [paymentInfo, setPaymentInfo] = useState({
+    paybill: '',
+    till: '',
+    account_name: '',
+    instructions: '',
+    manual_only: true
+  });
   const [status, setStatus] = useState({ state: 'idle', message: '' });
   const [createForm, setCreateForm] = useState({
     name: '',
@@ -40,24 +45,53 @@ export default function Tournaments() {
     api('/api/seasons', { auth: false })
       .then((data) => setSeasons(data.seasons || []))
       .catch(() => {});
+    api('/api/public/payment-info', { auth: false })
+      .then((data) => setPaymentInfo({
+        paybill: data.paybill || '',
+        till: data.till || '',
+        account_name: data.account_name || '',
+        instructions: data.instructions || '',
+        manual_only: data.manual_only !== false
+      }))
+      .catch(() => {});
   };
 
   useEffect(() => {
     load();
   }, []);
 
+  const buildPaymentMessage = (amount, typeLabel) => {
+    const pieces = [];
+    if (amount) {
+      pieces.push(`${typeLabel} fee: KES ${amount}.`);
+    }
+    if (paymentInfo.paybill) {
+      pieces.push(`Paybill: ${paymentInfo.paybill}.`);
+    }
+    if (paymentInfo.till) {
+      pieces.push(`Till: ${paymentInfo.till}.`);
+    }
+    if (paymentInfo.account_name) {
+      pieces.push(`Account/Reference: ${paymentInfo.account_name}.`);
+    }
+    if (paymentInfo.instructions) {
+      pieces.push(paymentInfo.instructions);
+    } else {
+      pieces.push('After payment, an admin will approve your entry.');
+    }
+    return pieces.join(' ');
+  };
+
   const onJoin = async (id) => {
     setStatus({ state: 'loading', message: '' });
     try {
       const data = await api(`/api/tournaments/${id}/join`, { method: 'POST' });
-      setStatus({ state: 'success', message: `Joined tournament (${data.status}).` });
-    } catch (err) {
-      if (err.message === 'payment_required') {
-        const amount = err.data?.amount || 0;
-        setStatus({ state: 'error', message: `Payment required: KES ${amount}. Redirecting to payments...` });
-        navigate(`/payments?tournament_id=${id}&amount=${amount}`);
+      if (data.payment_required || data.status === 'pending') {
+        setStatus({ state: 'success', message: buildPaymentMessage(data.amount || 0, 'Tournament entry') });
         return;
       }
+      setStatus({ state: 'success', message: `Joined tournament (${data.status}).` });
+    } catch (err) {
       setStatus({ state: 'error', message: err.message });
     }
   };
@@ -66,14 +100,12 @@ export default function Tournaments() {
     setStatus({ state: 'loading', message: '' });
     try {
       const data = await api(`/api/seasons/${id}/join`, { method: 'POST' });
-      setStatus({ state: 'success', message: `Joined season (${data.status}).` });
-    } catch (err) {
-      if (err.message === 'payment_required') {
-        const amount = err.data?.amount || 0;
-        setStatus({ state: 'error', message: `Season payment required: KES ${amount}. Redirecting to payments...` });
-        navigate(`/payments?season_id=${id}&amount=${amount}`);
+      if (data.payment_required || data.status === 'pending') {
+        setStatus({ state: 'success', message: buildPaymentMessage(data.amount || 0, 'Season entry') });
         return;
       }
+      setStatus({ state: 'success', message: `Joined season (${data.status}).` });
+    } catch (err) {
       setStatus({ state: 'error', message: err.message });
     }
   };
@@ -125,6 +157,19 @@ export default function Tournaments() {
 
   return (
     <div className="grid gap-6">
+      <section className="card p-6">
+        <h3 className="section-title">Entry Fee Payments</h3>
+        <p className="section-subtitle">Pay manually, then wait for admin approval to join the bracket.</p>
+        <div className="mt-4 grid gap-2 text-sm text-ink-700">
+          {paymentInfo.paybill && <p>Paybill: <span className="font-semibold text-ink-900">{paymentInfo.paybill}</span></p>}
+          {paymentInfo.till && <p>Till: <span className="font-semibold text-ink-900">{paymentInfo.till}</span></p>}
+          {paymentInfo.account_name && (
+            <p>Account/Reference: <span className="font-semibold text-ink-900">{paymentInfo.account_name}</span></p>
+          )}
+          <p>{paymentInfo.instructions || 'After you pay the entry fee, the admin will approve your tournament or season entry.'}</p>
+        </div>
+      </section>
+
       <section className="card p-6">
         <h3 className="section-title">Season Timeline</h3>
         <p className="section-subtitle">Upcoming and active seasons at a glance.</p>

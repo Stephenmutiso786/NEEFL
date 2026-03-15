@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api.js';
+import { api, getToken } from '../lib/api.js';
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState([]);
   const [status, setStatus] = useState({ state: 'idle', message: '' });
   const [settingForm, setSettingForm] = useState({ key: '', value: '' });
+  const [paymentForm, setPaymentForm] = useState({
+    paybill: '',
+    till: '',
+    account_name: '',
+    instructions: '',
+    manual_only: true
+  });
   const [roleForm, setRoleForm] = useState({ user_id: '', role: 'player' });
   const [backupFile, setBackupFile] = useState('');
   const [sponsors, setSponsors] = useState([]);
@@ -13,6 +20,26 @@ export default function AdminSettings() {
   const [policyForm, setPolicyForm] = useState({ id: '', slug: '', title: '', category: 'policy', status: 'draft', body: '' });
   const [verifications, setVerifications] = useState([]);
   const [maintenanceForm, setMaintenanceForm] = useState({ enabled: false, end_time: '', message: '' });
+  const openSecureFile = async (url) => {
+    if (!url) return;
+    const token = getToken();
+    const base = import.meta.env.VITE_API_BASE || '';
+    const targetUrl = url.startsWith('http') ? url : `${base}${url}`;
+    try {
+      const response = await fetch(targetUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (!response.ok) {
+        throw new Error('download_failed');
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      window.open(targetUrl, '_blank', 'noopener');
+    }
+  };
   const defaultRolePermissions = {
     admin: {
       admin: true,
@@ -23,6 +50,7 @@ export default function AdminSettings() {
       betting: true,
       wallet: true,
       community: true,
+      messages: true,
       clubs: true,
       disputes: true,
       support: true,
@@ -37,6 +65,7 @@ export default function AdminSettings() {
       betting: true,
       wallet: true,
       community: true,
+      messages: true,
       clubs: true,
       disputes: true,
       support: true,
@@ -51,6 +80,7 @@ export default function AdminSettings() {
       betting: true,
       wallet: true,
       community: true,
+      messages: true,
       support: true,
       notifications: true,
       policies: true,
@@ -63,6 +93,7 @@ export default function AdminSettings() {
       betting: true,
       wallet: true,
       community: true,
+      messages: true,
       support: true,
       notifications: true,
       policies: true,
@@ -75,6 +106,7 @@ export default function AdminSettings() {
       streams: true,
       disputes: true,
       community: true,
+      messages: true,
       support: true,
       notifications: true,
       policies: true,
@@ -86,6 +118,7 @@ export default function AdminSettings() {
       streams: true,
       disputes: true,
       community: true,
+      messages: true,
       support: true,
       notifications: true,
       policies: true,
@@ -97,6 +130,7 @@ export default function AdminSettings() {
       streams: true,
       disputes: true,
       community: true,
+      messages: true,
       support: true,
       notifications: true,
       policies: true,
@@ -106,6 +140,7 @@ export default function AdminSettings() {
       streams: true,
       matches: true,
       tournaments: true,
+      messages: true,
       support: true,
       notifications: true,
       policies: true,
@@ -119,6 +154,7 @@ export default function AdminSettings() {
     { key: 'betting', label: 'Betting' },
     { key: 'wallet', label: 'Wallet/Payments' },
     { key: 'community', label: 'Community' },
+    { key: 'messages', label: 'Messages' },
     { key: 'clubs', label: 'Clubs' },
     { key: 'disputes', label: 'Disputes' },
     { key: 'staff', label: 'Staff Tools' },
@@ -177,6 +213,16 @@ export default function AdminSettings() {
       message: map.maintenance_message || ''
     });
 
+    const manualRaw = String(map.payment_manual_only || '').toLowerCase();
+    const manualOnly = manualRaw ? ['1', 'true', 'yes', 'on', 'enabled'].includes(manualRaw) : true;
+    setPaymentForm({
+      paybill: map.payment_paybill || '',
+      till: map.payment_till || '',
+      account_name: map.payment_account_name || '',
+      instructions: map.payment_instructions || '',
+      manual_only: manualOnly
+    });
+
     if (map.role_permissions) {
       try {
         const parsed = JSON.parse(map.role_permissions);
@@ -203,6 +249,32 @@ export default function AdminSettings() {
       });
       setStatus({ state: 'success', message: 'Setting saved.' });
       setSettingForm({ key: '', value: '' });
+      load();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const savePaymentSettings = async (event) => {
+    event.preventDefault();
+    setStatus({ state: 'loading', message: '' });
+    try {
+      const updates = [
+        { key: 'payment_paybill', value: paymentForm.paybill || '' },
+        { key: 'payment_till', value: paymentForm.till || '' },
+        { key: 'payment_account_name', value: paymentForm.account_name || '' },
+        { key: 'payment_instructions', value: paymentForm.instructions || '' },
+        { key: 'payment_manual_only', value: paymentForm.manual_only ? 'true' : 'false' }
+      ];
+      await Promise.all(
+        updates.map((item) =>
+          api('/api/admin/settings', {
+            method: 'POST',
+            body: item
+          })
+        )
+      );
+      setStatus({ state: 'success', message: 'Payment instructions updated.' });
       load();
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
@@ -425,6 +497,63 @@ export default function AdminSettings() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="card p-6">
+        <h3 className="section-title">Manual Payment Instructions</h3>
+        <p className="section-subtitle">Show players how to pay entry fees manually while you approve entries.</p>
+        <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={savePaymentSettings}>
+          <div>
+            <label className="label">Paybill Number</label>
+            <input
+              className="input"
+              value={paymentForm.paybill}
+              onChange={(e) => setPaymentForm((prev) => ({ ...prev, paybill: e.target.value }))}
+              placeholder="e.g. 123456"
+            />
+          </div>
+          <div>
+            <label className="label">Till Number</label>
+            <input
+              className="input"
+              value={paymentForm.till}
+              onChange={(e) => setPaymentForm((prev) => ({ ...prev, till: e.target.value }))}
+              placeholder="e.g. 654321"
+            />
+          </div>
+          <div>
+            <label className="label">Account Name / Reference</label>
+            <input
+              className="input"
+              value={paymentForm.account_name}
+              onChange={(e) => setPaymentForm((prev) => ({ ...prev, account_name: e.target.value }))}
+              placeholder="NEEFL Entry Fee"
+            />
+          </div>
+          <div>
+            <label className="label">Manual Payments Only</label>
+            <select
+              className="input"
+              value={paymentForm.manual_only ? 'yes' : 'no'}
+              onChange={(e) => setPaymentForm((prev) => ({ ...prev, manual_only: e.target.value === 'yes' }))}
+            >
+              <option value="yes">Yes (disable online pay)</option>
+              <option value="no">No (allow online pay)</option>
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="label">Instructions</label>
+            <textarea
+              className="input min-h-[120px]"
+              value={paymentForm.instructions}
+              onChange={(e) => setPaymentForm((prev) => ({ ...prev, instructions: e.target.value }))}
+              placeholder="Ask players to send the entry fee to your Paybill/Till and include their gamer tag or tournament ID."
+            />
+          </div>
+          <div className="md:col-span-2">
+            <button className="btn-secondary" type="submit">Save Payment Info</button>
+          </div>
+        </form>
       </section>
 
       <section className="card p-6">
@@ -667,6 +796,14 @@ export default function AdminSettings() {
               <p className="font-semibold text-ink-900">{item.full_name} · {item.gamer_tag || `User ${item.user_id}`}</p>
               <p className="text-xs text-ink-500">{item.id_type} · {item.id_number} · {item.country}</p>
               <p className="text-xs text-ink-500">Status: {item.status}</p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-mint-700">
+                {item.document_front_url && (
+                  <button type="button" className="underline" onClick={() => openSecureFile(item.document_front_url)}>Front Scan</button>
+                )}
+                {item.document_back_url && (
+                  <button type="button" className="underline" onClick={() => openSecureFile(item.document_back_url)}>Back Scan</button>
+                )}
+              </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button className="btn-secondary" type="button" onClick={() => reviewVerification(item.id, 'approved')}>Approve</button>
                 <button className="btn-secondary" type="button" onClick={() => reviewVerification(item.id, 'rejected')}>Reject</button>

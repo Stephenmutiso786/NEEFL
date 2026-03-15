@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api, getToken } from '../lib/api.js';
 
 export default function PlayerProfileView() {
   const { id } = useParams();
   const token = getToken();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [relation, setRelation] = useState({ is_friend: false, is_following: false, friend_status: null });
   const [achievements, setAchievements] = useState([]);
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [listRestricted, setListRestricted] = useState(false);
   const [status, setStatus] = useState({ state: 'idle', message: '' });
 
   const load = () => {
@@ -20,6 +24,18 @@ export default function PlayerProfileView() {
       .catch((err) => setStatus({ state: 'error', message: err.message }));
     api(`/api/achievements/players/${id}`, { auth: false })
       .then((data) => setAchievements(data.achievements || []))
+      .catch(() => {});
+    api(`/api/public/players/${id}/followers`, { auth: Boolean(token) })
+      .then((data) => {
+        setFollowers(data.followers || []);
+        setListRestricted(Boolean(data.restricted));
+      })
+      .catch(() => {});
+    api(`/api/public/players/${id}/following`, { auth: Boolean(token) })
+      .then((data) => {
+        setFollowing(data.following || []);
+        setListRestricted(Boolean(data.restricted));
+      })
       .catch(() => {});
   };
 
@@ -47,6 +63,10 @@ export default function PlayerProfileView() {
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
     }
+  };
+
+  const openMessage = () => {
+    navigate(`/messages?user=${id}`);
   };
 
   if (!profile) {
@@ -102,6 +122,52 @@ export default function PlayerProfileView() {
             <button className="btn-secondary" type="button" onClick={follow}>
               {relation.is_following ? 'Following' : 'Follow'}
             </button>
+            <button className="btn-ghost" type="button" onClick={openMessage}>
+              Message
+            </button>
+          </div>
+        )}
+      </section>
+
+      <section className="card p-6">
+        <h3 className="card-title">Followers & Following</h3>
+        {listRestricted && (
+          <p className="mt-2 text-sm text-ink-500">Followers and following are private.</p>
+        )}
+        {!listRestricted && (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3">
+              <p className="text-sm font-semibold text-ink-900">Followers</p>
+              {followers.map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-2xl border border-sand-200 bg-sand-50 p-3 text-sm">
+                  <p className="font-semibold text-ink-900">{item.gamer_tag}</p>
+                  {token && (
+                    <button className="btn-ghost" type="button" onClick={() => navigate(`/messages?user=${item.user_id}`)}>
+                      Message
+                    </button>
+                  )}
+                </div>
+              ))}
+              {!followers.length && (
+                <p className="text-sm text-ink-500">No followers yet.</p>
+              )}
+            </div>
+            <div className="grid gap-3">
+              <p className="text-sm font-semibold text-ink-900">Following</p>
+              {following.map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-2xl border border-sand-200 bg-sand-50 p-3 text-sm">
+                  <p className="font-semibold text-ink-900">{item.gamer_tag}</p>
+                  {token && (
+                    <button className="btn-ghost" type="button" onClick={() => navigate(`/messages?user=${item.user_id}`)}>
+                      Message
+                    </button>
+                  )}
+                </div>
+              ))}
+              {!following.length && (
+                <p className="text-sm text-ink-500">Not following anyone yet.</p>
+              )}
+            </div>
           </div>
         )}
       </section>

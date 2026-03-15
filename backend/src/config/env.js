@@ -64,6 +64,17 @@ export const env = {
   },
 
   uploadDir: getEnv('UPLOAD_DIR', 'uploads'),
+  storage: {
+    provider: getEnv('STORAGE_PROVIDER', 'local'),
+    bucket: getEnv('S3_BUCKET'),
+    region: getEnv('S3_REGION', 'us-east-1'),
+    accessKeyId: getEnv('S3_ACCESS_KEY_ID'),
+    secretAccessKey: getEnv('S3_SECRET_ACCESS_KEY'),
+    endpoint: getEnv('S3_ENDPOINT'),
+    publicUrl: getEnv('S3_PUBLIC_URL'),
+    forcePathStyle: getEnv('S3_FORCE_PATH_STYLE', 'false') === 'true',
+    signedUrlExpires: Number(getEnv('S3_SIGNED_URL_EXPIRES', '900'))
+  },
 
   smtp: {
     host: getEnv('SMTP_HOST'),

@@ -6,6 +6,8 @@ export default function AdminTournaments() {
   const [seasons, setSeasons] = useState([]);
   const [entriesTournamentId, setEntriesTournamentId] = useState('');
   const [entries, setEntries] = useState([]);
+  const [seasonEntriesSeasonId, setSeasonEntriesSeasonId] = useState('');
+  const [seasonEntries, setSeasonEntries] = useState([]);
   const [status, setStatus] = useState({ state: 'idle', message: '' });
   const [createForm, setCreateForm] = useState({
     name: '',
@@ -44,6 +46,16 @@ export default function AdminTournaments() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!entriesTournamentId) return;
+    loadEntries(entriesTournamentId);
+  }, [entriesTournamentId]);
+
+  useEffect(() => {
+    if (!seasonEntriesSeasonId) return;
+    loadSeasonEntries(seasonEntriesSeasonId);
+  }, [seasonEntriesSeasonId]);
 
   const createTournament = async (event) => {
     event.preventDefault();
@@ -134,6 +146,19 @@ export default function AdminTournaments() {
     }
   };
 
+  const loadSeasonEntries = async (seasonId) => {
+    const id = seasonId || seasonEntriesSeasonId;
+    if (!id) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      const data = await api(`/api/admin/seasons/${id}/entries`);
+      setSeasonEntries(data.entries || []);
+      setStatus({ state: 'success', message: `Loaded ${data.entries?.length || 0} season entries.` });
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
   const updateEntryStatus = async (entryId, nextStatus) => {
     if (!entryId) return;
     setStatus({ state: 'loading', message: '' });
@@ -144,6 +169,21 @@ export default function AdminTournaments() {
       });
       setStatus({ state: 'success', message: `Entry updated (${nextStatus}).` });
       loadEntries();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const updateSeasonEntryStatus = async (entryId, nextStatus) => {
+    if (!entryId) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/admin/season-entries/${entryId}/status`, {
+        method: 'POST',
+        body: { status: nextStatus }
+      });
+      setStatus({ state: 'success', message: `Season entry updated (${nextStatus}).` });
+      loadSeasonEntries();
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
     }
@@ -328,6 +368,80 @@ export default function AdminTournaments() {
           ))}
           {!seasons.length && (
             <p className="text-sm text-ink-500">No seasons created yet.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="card p-6">
+        <h3 className="section-title">Season Entries</h3>
+        <p className="section-subtitle">Approve paid season registrations before fixtures are created.</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto]">
+          <select
+            className="input"
+            value={seasonEntriesSeasonId}
+            onChange={(e) => {
+              setSeasonEntriesSeasonId(e.target.value);
+              setSeasonEntries([]);
+            }}
+          >
+            <option value="">Select season</option>
+            {seasons.map((season) => (
+              <option key={season.id} value={season.id}>
+                {season.name} (ID {season.id})
+              </option>
+            ))}
+          </select>
+          <button className="btn-secondary" type="button" onClick={() => loadSeasonEntries()}>
+            Load Entries
+          </button>
+        </div>
+        <div className="mt-4 grid gap-3">
+          {seasonEntries.map((entry) => (
+            <div key={entry.id} className="scoreboard">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-ink-900">{entry.gamer_tag || `User ${entry.player_id}`}</p>
+                  <p className="text-xs text-ink-500">{entry.email || entry.phone || 'No contact'}</p>
+                  <p className="text-xs text-ink-500">Status: {entry.status}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    disabled={entry.status === 'approved'}
+                    onClick={() => updateSeasonEntryStatus(entry.id, 'approved')}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    disabled={entry.status === 'paid'}
+                    onClick={() => updateSeasonEntryStatus(entry.id, 'paid')}
+                  >
+                    Mark Paid
+                  </button>
+                  <button
+                    className="btn-ghost"
+                    type="button"
+                    disabled={entry.status === 'withdrawn'}
+                    onClick={() => updateSeasonEntryStatus(entry.id, 'withdrawn')}
+                  >
+                    Withdraw
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {!seasonEntriesSeasonId && (
+            <div className="rounded-2xl border border-dashed border-sand-200 p-6 text-sm text-ink-500">
+              Select a season to manage entries.
+            </div>
+          )}
+          {seasonEntriesSeasonId && !seasonEntries.length && (
+            <div className="rounded-2xl border border-dashed border-sand-200 p-6 text-sm text-ink-500">
+              No entries found for this season.
+            </div>
           )}
         </div>
       </section>

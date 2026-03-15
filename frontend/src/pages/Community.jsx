@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 
 export default function Community() {
+  const navigate = useNavigate();
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState({ incoming: [], outgoing: [] });
   const [following, setFollowing] = useState([]);
@@ -81,6 +83,10 @@ export default function Community() {
     }
   };
 
+  const openMessage = (userId) => {
+    navigate(`/messages?user=${userId}`);
+  };
+
   return (
     <div className="grid gap-6">
       <section className="card p-6">
@@ -100,6 +106,7 @@ export default function Community() {
               <div className="flex flex-wrap gap-2">
                 <button className="btn-secondary" type="button" onClick={() => sendFriendRequest(player.user_id)}>Add Friend</button>
                 <button className="btn-secondary" type="button" onClick={() => followUser(player.user_id)}>Follow</button>
+                <button className="btn-ghost" type="button" onClick={() => openMessage(player.user_id)}>Message</button>
               </div>
             </div>
           ))}
@@ -137,7 +144,10 @@ export default function Community() {
             {friends.map((friend) => (
               <div key={friend.id} className="flex items-center justify-between rounded-2xl border border-sand-200 bg-sand-50 p-3 text-sm">
                 <p className="font-semibold text-ink-900">{friend.gamer_tag}</p>
-                <span className="text-xs text-ink-500">{friend.status}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-ink-500">{friend.status}</span>
+                  <button className="btn-ghost" type="button" onClick={() => openMessage(friend.user_id)}>Message</button>
+                </div>
               </div>
             ))}
             {!friends.length && (
@@ -154,7 +164,10 @@ export default function Community() {
             {following.map((item) => (
               <div key={item.id} className="flex items-center justify-between rounded-2xl border border-sand-200 bg-sand-50 p-3 text-sm">
                 <p className="font-semibold text-ink-900">{item.gamer_tag}</p>
-                <span className="text-xs text-ink-500">{item.status}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-ink-500">{item.status}</span>
+                  <button className="btn-ghost" type="button" onClick={() => openMessage(item.user_id)}>Message</button>
+                </div>
               </div>
             ))}
             {!following.length && (
@@ -169,7 +182,10 @@ export default function Community() {
             {followers.map((item) => (
               <div key={item.id} className="flex items-center justify-between rounded-2xl border border-sand-200 bg-sand-50 p-3 text-sm">
                 <p className="font-semibold text-ink-900">{item.gamer_tag}</p>
-                <span className="text-xs text-ink-500">{item.status}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-ink-500">{item.status}</span>
+                  <button className="btn-ghost" type="button" onClick={() => openMessage(item.user_id)}>Message</button>
+                </div>
               </div>
             ))}
             {!followers.length && (

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api.js';
+import { useNavigate } from 'react-router-dom';
+import { api, getToken } from '../lib/api.js';
 
 export default function Profile() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({
     gamer_tag: '',
@@ -20,11 +22,13 @@ export default function Profile() {
     id_number: '',
     country: '',
     date_of_birth: '',
-    phone: '',
-    document_url: ''
+    phone: ''
   });
+  const [kycFiles, setKycFiles] = useState({ front: null, back: null });
   const [kycStatus, setKycStatus] = useState({ state: 'idle', message: '' });
   const [achievements, setAchievements] = useState([]);
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
 
   useEffect(() => {
     api('/api/players/me')
@@ -52,11 +56,17 @@ export default function Profile() {
             id_number: data.verification.id_number || '',
             country: data.verification.country || '',
             date_of_birth: data.verification.date_of_birth || '',
-            phone: data.verification.phone || '',
-            document_url: data.verification.document_url || ''
+            phone: data.verification.phone || ''
           });
         }
       })
+      .catch(() => {});
+
+    api('/api/social/followers')
+      .then((data) => setFollowers(data.followers || []))
+      .catch(() => {});
+    api('/api/social/following')
+      .then((data) => setFollowing(data.following || []))
       .catch(() => {});
   }, []);
 
@@ -110,7 +120,21 @@ export default function Profile() {
     event.preventDefault();
     setKycStatus({ state: 'loading', message: '' });
     try {
-      await api('/api/verification/me', { method: 'POST', body: kycForm });
+      if (!kycFiles.front || !kycFiles.back) {
+        setKycStatus({ state: 'error', message: 'Please upload both front and back ID scans.' });
+        return;
+      }
+      const formData = new FormData();
+      formData.append('full_name', kycForm.full_name);
+      formData.append('id_type', kycForm.id_type);
+      formData.append('id_number', kycForm.id_number);
+      formData.append('country', kycForm.country);
+      formData.append('date_of_birth', kycForm.date_of_birth);
+      if (kycForm.phone) formData.append('phone', kycForm.phone);
+      formData.append('document_front', kycFiles.front);
+      formData.append('document_back', kycFiles.back);
+
+      await api('/api/verification/me', { method: 'POST', body: formData });
       setKycStatus({ state: 'success', message: 'Verification submitted. Awaiting approval.' });
       const data = await api('/api/verification/me');
       setKyc(data.verification);
@@ -118,6 +142,31 @@ export default function Profile() {
       setProfile(profileData.player);
     } catch (err) {
       setKycStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const openMessage = (userId) => {
+    navigate(`/messages?user=${userId}`);
+  };
+
+  const openSecureFile = async (url) => {
+    if (!url) return;
+    const token = getToken();
+    const base = import.meta.env.VITE_API_BASE || '';
+    const targetUrl = url.startsWith('http') ? url : `${base}${url}`;
+    try {
+      const response = await fetch(targetUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (!response.ok) {
+        throw new Error('download_failed');
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      window.open(targetUrl, '_blank', 'noopener');
     }
   };
 
@@ -176,6 +225,40 @@ export default function Profile() {
             {status.message}
           </p>
         )}
+      </section>
+
+      <section className="card p-6">
+        <h3 className="section-title">Followers & Following</h3>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3">
+            <p className="text-sm font-semibold text-ink-900">Followers</p>
+            {followers.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-2xl border border-sand-200 bg-sand-50 p-3 text-sm">
+                <p className="font-semibold text-ink-900">{item.gamer_tag}</p>
+                <button className="btn-ghost" type="button" onClick={() => openMessage(item.user_id)}>
+                  Message
+                </button>
+              </div>
+            ))}
+            {!followers.length && (
+              <p className="text-sm text-ink-500">No followers yet.</p>
+            )}
+          </div>
+          <div className="grid gap-3">
+            <p className="text-sm font-semibold text-ink-900">Following</p>
+            {following.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-2xl border border-sand-200 bg-sand-50 p-3 text-sm">
+                <p className="font-semibold text-ink-900">{item.gamer_tag}</p>
+                <button className="btn-ghost" type="button" onClick={() => openMessage(item.user_id)}>
+                  Message
+                </button>
+              </div>
+            ))}
+            {!following.length && (
+              <p className="text-sm text-ink-500">Not following anyone yet.</p>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="card p-6">
@@ -259,8 +342,42 @@ export default function Profile() {
             <input className="input" value={kycForm.phone} onChange={(e) => setKycForm((prev) => ({ ...prev, phone: e.target.value }))} />
           </div>
           <div className="md:col-span-2">
-            <label className="label">Document URL (scan/photo)</label>
-            <input className="input" value={kycForm.document_url} onChange={(e) => setKycForm((prev) => ({ ...prev, document_url: e.target.value }))} />
+            <label className="label">ID Front Scan (upload)</label>
+            <input
+              className="input"
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => setKycFiles((prev) => ({ ...prev, front: e.target.files?.[0] || null }))}
+              required
+            />
+            {kyc?.document_front_url && (
+              <button
+                className="mt-2 inline-flex text-xs text-mint-700 underline"
+                type="button"
+                onClick={() => openSecureFile(kyc.document_front_url)}
+              >
+                View current front scan
+              </button>
+            )}
+          </div>
+          <div className="md:col-span-2">
+            <label className="label">ID Back Scan (upload)</label>
+            <input
+              className="input"
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => setKycFiles((prev) => ({ ...prev, back: e.target.files?.[0] || null }))}
+              required
+            />
+            {kyc?.document_back_url && (
+              <button
+                className="mt-2 inline-flex text-xs text-mint-700 underline"
+                type="button"
+                onClick={() => openSecureFile(kyc.document_back_url)}
+              >
+                View current back scan
+              </button>
+            )}
           </div>
           <div className="md:col-span-2">
             <button className="btn-primary" type="submit" disabled={kycStatus.state === 'loading'}>

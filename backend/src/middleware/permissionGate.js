@@ -17,6 +17,7 @@ function resolveModule(pathname) {
   if (pathname.startsWith('/api/wallet') || pathname.startsWith('/api/payments')) return 'wallet';
   if (pathname.startsWith('/api/live-streams') || pathname.startsWith('/api/streams')) return 'streams';
   if (pathname.startsWith('/api/social')) return 'community';
+  if (pathname.startsWith('/api/messages')) return 'messages';
   if (pathname.startsWith('/api/clubs')) return 'clubs';
   if (pathname.startsWith('/api/disputes')) return 'disputes';
   if (pathname.startsWith('/api/matches')) return 'matches';
@@ -76,4 +77,3 @@ export async function permissionGate(req, res, next) {
 
   return next();
 }
-

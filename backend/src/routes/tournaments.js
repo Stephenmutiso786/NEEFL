@@ -122,7 +122,12 @@ router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
     if (existingStatus === 'paid' || existingStatus === 'approved') {
       return res.status(200).json({ status: existingStatus });
     }
-    return res.status(402).json({ error: 'payment_required', amount: tournament.entry_fee, tournament_id: tournamentId });
+    return res.status(200).json({
+      status: existingStatus,
+      payment_required: true,
+      amount: Number(tournament.entry_fee) || 0,
+      tournament_id: tournamentId
+    });
   }
 
   const status = Number(tournament.entry_fee) === 0 ? 'approved' : 'pending';
@@ -132,10 +137,6 @@ router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
      VALUES (:tournament_id, :player_id, :status)`,
     { tournament_id: tournamentId, player_id: req.user.id, status }
   );
-
-  if (status === 'pending') {
-    return res.status(402).json({ error: 'payment_required', amount: tournament.entry_fee, tournament_id: tournamentId });
-  }
 
   await notifyUsers(db, [req.user.id], 'tournament_joined', {
     tournament_id: tournamentId,
@@ -151,7 +152,12 @@ router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
     payload: { tournament_id: tournamentId }
   });
 
-  res.status(201).json({ status });
+  res.status(201).json({
+    status,
+    payment_required: status !== 'approved',
+    amount: Number(tournament.entry_fee) || 0,
+    tournament_id: tournamentId
+  });
 }));
 
 router.post('/:id/schedule', requireAuth, requireRole('admin'), validate(scheduleSchema), asyncHandler(async (req, res) => {

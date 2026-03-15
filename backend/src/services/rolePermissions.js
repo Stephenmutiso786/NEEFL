@@ -10,6 +10,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     betting: true,
     wallet: true,
     community: true,
+    messages: true,
     clubs: true,
     disputes: true,
     support: true,
@@ -24,6 +25,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     betting: true,
     wallet: true,
     community: true,
+    messages: true,
     clubs: true,
     disputes: true,
     support: true,
@@ -38,6 +40,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     betting: true,
     wallet: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -50,6 +53,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     betting: true,
     wallet: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -62,6 +66,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     streams: true,
     disputes: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -73,6 +78,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     streams: true,
     disputes: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -84,6 +90,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     streams: true,
     disputes: true,
     community: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -93,6 +100,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     streams: true,
     matches: true,
     tournaments: true,
+    messages: true,
     support: true,
     notifications: true,
     policies: true,
@@ -135,4 +143,3 @@ export function permissionsForRole(role, permissions) {
   if (!permissions) return DEFAULT_ROLE_PERMISSIONS[role] || {};
   return permissions[role] || DEFAULT_ROLE_PERMISSIONS[role] || {};
 }
-

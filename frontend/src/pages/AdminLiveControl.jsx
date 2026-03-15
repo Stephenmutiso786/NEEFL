@@ -25,6 +25,15 @@ export default function AdminLiveControl() {
     red_away: ''
   });
   const [replayForm, setReplayForm] = useState({ replay_url: '', highlights_url: '' });
+  const [streamForm, setStreamForm] = useState({
+    stream_platform: 'youtube',
+    stream_link: '',
+    stream_link_hd: '',
+    stream_link_sd: '',
+    stream_link_audio: '',
+    access_level: 'public'
+  });
+  const [activeStream, setActiveStream] = useState(null);
   const [chatSettings, setChatSettings] = useState({ enabled: true, slow_mode_seconds: 0 });
   const [chatMute, setChatMute] = useState({ user_id: '', ip: '', minutes: '10', reason: '' });
   const [featured, setFeatured] = useState('');
@@ -48,6 +57,13 @@ export default function AdminLiveControl() {
       .catch(() => setViewerStats(null));
   };
 
+  const loadStream = (matchId) => {
+    if (!matchId) return;
+    api(`/api/matches/${matchId}/stream`)
+      .then((data) => setActiveStream(data.stream || null))
+      .catch(() => setActiveStream(null));
+  };
+
   useEffect(() => {
     loadMatches();
     loadFeatured();
@@ -67,7 +83,39 @@ export default function AdminLiveControl() {
       })
       .catch(() => setMatch(null));
     loadViewerStats(selectedMatchId);
+    loadStream(selectedMatchId);
   }, [selectedMatchId]);
+
+  const submitStream = async (event) => {
+    event.preventDefault();
+    if (!selectedMatchId) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/matches/${selectedMatchId}/stream`, {
+        method: 'POST',
+        body: {
+          stream_platform: streamForm.stream_platform,
+          stream_link: streamForm.stream_link,
+          stream_link_hd: streamForm.stream_link_hd || undefined,
+          stream_link_sd: streamForm.stream_link_sd || undefined,
+          stream_link_audio: streamForm.stream_link_audio || undefined,
+          access_level: streamForm.access_level || undefined
+        }
+      });
+      setStatus({ state: 'success', message: 'Live stream attached.' });
+      setStreamForm({
+        stream_platform: 'youtube',
+        stream_link: '',
+        stream_link_hd: '',
+        stream_link_sd: '',
+        stream_link_audio: '',
+        access_level: 'public'
+      });
+      loadStream(selectedMatchId);
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
 
   const runAction = async (action, payload) => {
     if (!selectedMatchId) return;
@@ -301,6 +349,87 @@ export default function AdminLiveControl() {
             <button className="btn-secondary" type="submit">Update Broadcast Settings</button>
           </div>
         </form>
+      </section>
+
+      <section className="card p-6">
+        <h3 className="section-title">Attach Live Stream Link</h3>
+        <p className="section-subtitle">Paste the live URL so viewers can watch the match on the Live Match Center.</p>
+        <form className="mt-4 grid gap-4 md:grid-cols-3" onSubmit={submitStream}>
+          <div>
+            <label className="label">Platform</label>
+            <select
+              className="input"
+              value={streamForm.stream_platform}
+              onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_platform: e.target.value }))}
+            >
+              <option value="youtube">YouTube</option>
+              <option value="twitch">Twitch</option>
+              <option value="facebook">Facebook</option>
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="label">Stream Link</label>
+            <input
+              className="input"
+              value={streamForm.stream_link}
+              onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_link: e.target.value }))}
+              placeholder="https://youtube.com/watch?v=VIDEO_ID"
+              required
+            />
+          </div>
+          <div>
+            <label className="label">HD Link (optional)</label>
+            <input
+              className="input"
+              value={streamForm.stream_link_hd}
+              onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_link_hd: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="label">SD Link (optional)</label>
+            <input
+              className="input"
+              value={streamForm.stream_link_sd}
+              onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_link_sd: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="label">Audio Link (optional)</label>
+            <input
+              className="input"
+              value={streamForm.stream_link_audio}
+              onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_link_audio: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="label">Access Level</label>
+            <select
+              className="input"
+              value={streamForm.access_level}
+              onChange={(e) => setStreamForm((prev) => ({ ...prev, access_level: e.target.value }))}
+            >
+              <option value="public">Public</option>
+              <option value="registered">Registered</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+          <div className="md:col-span-3">
+            <button className="btn-secondary" type="submit">Save Live Link</button>
+            {selectedMatchId && (
+              <a className="btn-ghost ml-3" href={`/streams?match=${selectedMatchId}`}>
+                Open Viewer Page
+              </a>
+            )}
+          </div>
+        </form>
+        {activeStream && (
+          <div className="mt-4 rounded-2xl border border-sand-200 bg-sand-50 p-4 text-sm">
+            <p className="font-semibold text-ink-900">Current Stream</p>
+            <p className="text-xs text-ink-500">Platform: {activeStream.stream_platform}</p>
+            <p className="text-xs text-ink-500">Status: {activeStream.status}</p>
+            <p className="text-xs text-ink-500">Access: {activeStream.access_level}</p>
+          </div>
+        )}
       </section>
 
       <section className="card p-6">

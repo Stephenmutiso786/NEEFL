@@ -40,7 +40,8 @@ export default function Sidebar() {
             { label: 'Live Control', path: '/admin/live', module: 'admin' },
             { label: 'Payments', path: '/admin/payments', module: 'admin' },
             { label: 'Analytics', path: '/admin/analytics', module: 'admin' },
-            { label: 'Settings', path: '/admin/settings', module: 'admin' }
+            { label: 'Settings', path: '/admin/settings', module: 'admin' },
+            { label: 'Messages', path: '/messages', module: 'messages' }
           ]
         }
       ];
@@ -56,6 +57,7 @@ export default function Sidebar() {
             { label: 'Match Review', path: '/staff/matches', module: 'staff' },
             { label: 'Disputes', path: '/staff/disputes', module: 'disputes' },
             { label: 'Community', path: '/community', module: 'community' },
+            { label: 'Messages', path: '/messages', module: 'messages' },
             { label: 'Clubs', path: '/clubs', module: 'clubs' }
           ]
         },
@@ -64,6 +66,7 @@ export default function Sidebar() {
           items: [
             { label: 'My Dashboard', path: '/player/dashboard' },
             { label: 'My Matches', path: '/player/matches', module: 'matches' },
+            { label: 'Messages', path: '/messages', module: 'messages' },
             { label: 'Betting', path: '/betting', module: 'betting' },
             { label: 'Wallet', path: '/payments', module: 'wallet' },
             { label: 'Notifications', path: '/notifications', module: 'notifications' },
@@ -83,6 +86,7 @@ export default function Sidebar() {
             { label: 'Match Review', path: '/staff/matches', module: 'staff' },
             { label: 'Disputes', path: '/staff/disputes', module: 'disputes' },
             { label: 'Community', path: '/community', module: 'community' },
+            { label: 'Messages', path: '/messages', module: 'messages' },
             { label: 'Rules', path: '/policies/rulebook', module: 'policies' }
           ]
         }
@@ -98,7 +102,8 @@ export default function Sidebar() {
             { label: 'Dashboard', path: '/broadcaster', module: 'streams' },
             { label: 'Live Matches', path: '/streams', module: 'streams' },
             { label: 'Upcoming', path: '/matches#upcoming', module: 'matches' },
-            { label: 'Results', path: '/matches#results', module: 'matches' }
+            { label: 'Results', path: '/matches#results', module: 'matches' },
+            { label: 'Messages', path: '/messages', module: 'messages' }
           ]
         }
       ];
@@ -114,7 +119,8 @@ export default function Sidebar() {
             { label: 'Live', path: '/streams', module: 'streams' },
             { label: 'Upcoming', path: '/matches#upcoming', module: 'matches' },
             { label: 'Results', path: '/matches#results', module: 'matches' },
-            { label: 'Leaderboard', path: '/leaderboard' }
+            { label: 'Leaderboard', path: '/leaderboard' },
+            { label: 'Messages', path: '/messages', module: 'messages' }
           ]
         }
       ];
@@ -129,7 +135,8 @@ export default function Sidebar() {
             { label: 'Dashboard', path: '/bettor/dashboard', module: 'betting' },
             { label: 'Place Bets', path: '/betting', module: 'betting' },
             { label: 'Wallet', path: '/payments', module: 'wallet' },
-            { label: 'Upcoming', path: '/matches#upcoming', module: 'matches' }
+            { label: 'Upcoming', path: '/matches#upcoming', module: 'matches' },
+            { label: 'Messages', path: '/messages', module: 'messages' }
           ]
         }
       ];
@@ -146,6 +153,7 @@ export default function Sidebar() {
             { label: 'My Matches', path: '/player/matches', module: 'matches' },
             { label: 'Betting', path: '/betting', module: 'betting' },
             { label: 'Community', path: '/community', module: 'community' },
+            { label: 'Messages', path: '/messages', module: 'messages' },
             { label: 'Clubs', path: '/clubs', module: 'clubs' },
             { label: 'Wallet', path: '/payments', module: 'wallet' },
             { label: 'Notifications', path: '/notifications', module: 'notifications' },

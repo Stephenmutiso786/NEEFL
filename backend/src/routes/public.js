@@ -22,6 +22,34 @@ function statusFromLastSeen(lastSeen) {
   return 'offline';
 }
 
+async function resolveProfileVisibility(userId, req) {
+  const [rows] = await db.query(
+    `SELECT id, privacy_profile
+     FROM users
+     WHERE id = :id AND status = 'active'`,
+    { id: userId }
+  );
+  if (!rows.length) {
+    return { exists: false, restricted: true, isFriend: false };
+  }
+  const profile = rows[0];
+  let isFriend = false;
+  if (req.user && req.user.id !== userId) {
+    const [friendRows] = await db.query(
+      `SELECT status FROM friends
+       WHERE status = 'accepted'
+         AND ((requester_id = :me AND receiver_id = :other)
+           OR (requester_id = :other AND receiver_id = :me))
+       LIMIT 1`,
+      { me: req.user.id, other: userId }
+    );
+    isFriend = friendRows.length > 0;
+  }
+  const restricted = profile.privacy_profile === 'private'
+    || (profile.privacy_profile === 'friends' && (!req.user || (req.user.id !== userId && !isFriend)));
+  return { exists: true, restricted, isFriend };
+}
+
 async function fetchUpcoming(limit) {
   const safeLimit = clampLimit(limit);
   const [rows] = await db.query(
@@ -165,6 +193,36 @@ router.get('/maintenance', asyncHandler(async (req, res) => {
   });
 }));
 
+router.get('/payment-info', asyncHandler(async (req, res) => {
+  const [rows] = await db.query(
+    `SELECT setting_key, setting_value
+     FROM platform_settings
+     WHERE setting_key IN (
+       'payment_paybill',
+       'payment_till',
+       'payment_account_name',
+       'payment_instructions',
+       'payment_manual_only'
+     )`
+  );
+  const settings = rows.reduce((acc, row) => {
+    acc[row.setting_key] = row.setting_value;
+    return acc;
+  }, {});
+  const manualRaw = String(settings.payment_manual_only || '').toLowerCase();
+  const manualOnly = manualRaw
+    ? ['1', 'true', 'yes', 'on', 'enabled'].includes(manualRaw)
+    : true;
+
+  res.json({
+    paybill: settings.payment_paybill || '',
+    till: settings.payment_till || '',
+    account_name: settings.payment_account_name || '',
+    instructions: settings.payment_instructions || '',
+    manual_only: manualOnly
+  });
+}));
+
 router.get('/permissions', optionalAuth, asyncHandler(async (req, res) => {
   const permissions = await fetchRolePermissions(db);
   const role = req.user?.role || 'public';
@@ -282,6 +340,64 @@ router.get('/players/:id', optionalAuth, asyncHandler(async (req, res) => {
       is_following: isFollowing
     }
   });
+}));
+
+router.get('/players/:id/followers', optionalAuth, asyncHandler(async (req, res) => {
+  const userId = Number(req.params.id);
+  const visibility = await resolveProfileVisibility(userId, req);
+  if (!visibility.exists) {
+    return res.status(404).json({ error: 'not_found' });
+  }
+  if (visibility.restricted) {
+    return res.json({ followers: [], restricted: true });
+  }
+
+  const [rows] = await db.query(
+    `SELECT f.id, f.follower_id as user_id, u.last_seen_at, u.privacy_presence, p.gamer_tag
+     FROM follows f
+     JOIN users u ON u.id = f.follower_id
+     LEFT JOIN players p ON p.user_id = u.id
+     WHERE f.following_id = :id
+     ORDER BY f.created_at DESC
+     LIMIT 50`,
+    { id: userId }
+  );
+  const followers = rows.map((row) => ({
+    id: row.id,
+    user_id: row.user_id,
+    gamer_tag: row.gamer_tag || `User ${row.user_id}`,
+    status: row.privacy_presence ? statusFromLastSeen(row.last_seen_at) : 'offline'
+  }));
+  res.json({ followers, restricted: false });
+}));
+
+router.get('/players/:id/following', optionalAuth, asyncHandler(async (req, res) => {
+  const userId = Number(req.params.id);
+  const visibility = await resolveProfileVisibility(userId, req);
+  if (!visibility.exists) {
+    return res.status(404).json({ error: 'not_found' });
+  }
+  if (visibility.restricted) {
+    return res.json({ following: [], restricted: true });
+  }
+
+  const [rows] = await db.query(
+    `SELECT f.id, f.following_id as user_id, u.last_seen_at, u.privacy_presence, p.gamer_tag
+     FROM follows f
+     JOIN users u ON u.id = f.following_id
+     LEFT JOIN players p ON p.user_id = u.id
+     WHERE f.follower_id = :id
+     ORDER BY f.created_at DESC
+     LIMIT 50`,
+    { id: userId }
+  );
+  const following = rows.map((row) => ({
+    id: row.id,
+    user_id: row.user_id,
+    gamer_tag: row.gamer_tag || `User ${row.user_id}`,
+    status: row.privacy_presence ? statusFromLastSeen(row.last_seen_at) : 'offline'
+  }));
+  res.json({ following, restricted: false });
 }));
 
 router.get('/matches/:id/events', asyncHandler(async (req, res) => {

@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import path from 'path';
 import fs from 'fs';
 import { env } from './config/env.js';
+import { ensureSchema } from './db/ensureSchema.js';
 import { errorHandler } from './middleware/error.js';
 import { maintenanceGate } from './middleware/maintenance.js';
 import { permissionGate } from './middleware/permissionGate.js';
@@ -25,6 +26,7 @@ import betRoutes from './routes/bets.js';
 import staffRoutes from './routes/staff.js';
 import liveStreamRoutes from './routes/liveStreams.js';
 import socialRoutes from './routes/social.js';
+import messageRoutes from './routes/messages.js';
 import policyRoutes from './routes/policies.js';
 import verificationRoutes from './routes/verification.js';
 import clubRoutes from './routes/clubs.js';
@@ -98,6 +100,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/social', socialRoutes);
+app.use('/api/messages', messageRoutes);
 app.use('/api/policies', policyRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/clubs', clubRoutes);
@@ -112,6 +115,15 @@ if (fs.existsSync(publicDir)) {
   });
 }
 
-app.listen(env.port, () => {
-  console.log(`NEEFL API running on port ${env.port}`);
-});
+ensureSchema()
+  .then(() => {
+    app.listen(env.port, () => {
+      console.log(`NEEFL API running on port ${env.port}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to ensure schema', err);
+    app.listen(env.port, () => {
+      console.log(`NEEFL API running on port ${env.port}`);
+    });
+  });

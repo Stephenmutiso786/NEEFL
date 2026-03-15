@@ -18,6 +18,7 @@ import Notifications from './pages/Notifications.jsx';
 import Support from './pages/Support.jsx';
 import Community from './pages/Community.jsx';
 import Clubs from './pages/Clubs.jsx';
+import Messages from './pages/Messages.jsx';
 import PolicyPage from './pages/PolicyPage.jsx';
 import PlayerProfileView from './pages/PlayerProfileView.jsx';
 import FanDashboard from './pages/FanDashboard.jsx';
@@ -60,6 +61,7 @@ function App() {
           <Route path="/tournaments" element={<Tournaments />} />
           <Route path="/betting" element={<Betting />} />
           <Route path="/community" element={<RequireAuth><Community /></RequireAuth>} />
+          <Route path="/messages" element={<RequireAuth><Messages /></RequireAuth>} />
           <Route path="/clubs" element={<RequireAuth><Clubs /></RequireAuth>} />
           <Route path="/player/dashboard" element={<RequireAuth><PlayerDashboard /></RequireAuth>} />
           <Route path="/fan/dashboard" element={<RequireRole roles={['fan']} permission="matches"><FanDashboard /></RequireRole>} />

@@ -105,7 +105,12 @@ router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
     if (existingStatus === 'paid' || existingStatus === 'approved') {
       return res.status(200).json({ status: existingStatus });
     }
-    return res.status(402).json({ error: 'payment_required', amount: season.entry_fee, season_id: seasonId });
+    return res.status(200).json({
+      status: existingStatus,
+      payment_required: true,
+      amount: Number(season.entry_fee) || 0,
+      season_id: seasonId
+    });
   }
 
   const status = Number(season.entry_fee) === 0 ? 'approved' : 'pending';
@@ -115,11 +120,12 @@ router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
     { season_id: seasonId, player_id: req.user.id, status }
   );
 
-  if (status === 'pending') {
-    return res.status(402).json({ error: 'payment_required', amount: season.entry_fee, season_id: seasonId });
-  }
-
-  res.status(201).json({ status });
+  res.status(201).json({
+    status,
+    payment_required: status !== 'approved',
+    amount: Number(season.entry_fee) || 0,
+    season_id: seasonId
+  });
 }));
 
 export default router;

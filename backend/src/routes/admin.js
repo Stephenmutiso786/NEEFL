@@ -244,6 +244,22 @@ router.get('/tournaments/:id/entries', asyncHandler(async (req, res) => {
   res.json({ entries: rows });
 }));
 
+router.get('/seasons/:id/entries', asyncHandler(async (req, res) => {
+  const seasonId = Number(req.params.id);
+  const [rows] = await db.query(
+    `SELECT e.id, e.season_id, e.player_id, e.status, e.payment_id, e.created_at,
+            u.email, u.phone,
+            p.gamer_tag
+     FROM season_entries e
+     JOIN users u ON u.id = e.player_id
+     LEFT JOIN players p ON p.user_id = e.player_id
+     WHERE e.season_id = :season_id
+     ORDER BY e.created_at DESC`,
+    { season_id: seasonId }
+  );
+  res.json({ entries: rows });
+}));
+
 router.post('/tournament-entries/:id/status', validate(tournamentEntryStatusSchema), asyncHandler(async (req, res) => {
   const entryId = Number(req.params.id);
   const { status } = req.body;
@@ -275,6 +291,45 @@ router.post('/tournament-entries/:id/status', validate(tournamentEntryStatusSche
     actorUserId: req.user.id,
     action: 'tournament_entry_status',
     entityType: 'tournament_entry',
+    entityId: entryId,
+    ip: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+
+  res.status(204).send();
+}));
+
+router.post('/season-entries/:id/status', validate(tournamentEntryStatusSchema), asyncHandler(async (req, res) => {
+  const entryId = Number(req.params.id);
+  const { status } = req.body;
+
+  const [rows] = await db.query(
+    `SELECT id, season_id, player_id, status AS current_status
+     FROM season_entries
+     WHERE id = :id`,
+    { id: entryId }
+  );
+  if (!rows.length) {
+    return res.status(404).json({ error: 'not_found' });
+  }
+  const entry = rows[0];
+
+  await db.query(
+    `UPDATE season_entries
+     SET status = :status
+     WHERE id = :id`,
+    { status, id: entryId }
+  );
+
+  await notifyUsers(db, [entry.player_id], 'season_entry_status', {
+    season_id: entry.season_id,
+    status
+  });
+
+  await logAudit(db, {
+    actorUserId: req.user.id,
+    action: 'season_entry_status',
+    entityType: 'season_entry',
     entityId: entryId,
     ip: req.ip,
     userAgent: req.headers['user-agent']
@@ -1066,7 +1121,7 @@ router.post('/results/:matchId/approve', validate(approveResultSchema), asyncHan
   const matchId = Number(req.params.matchId);
 
   const [rows] = await db.query(
-    `SELECT m.id, m.player1_id, m.player2_id,
+    `SELECT m.id, m.player1_id, m.player2_id, m.status, m.match_fee,
             r.id as result_id, r.score1, r.score2
      FROM matches m
      JOIN match_results r ON r.match_id = m.id
@@ -1080,6 +1135,9 @@ router.post('/results/:matchId/approve', validate(approveResultSchema), asyncHan
   }
 
   const match = rows[0];
+  if (match.status === 'approved') {
+    return res.status(400).json({ error: 'already_approved' });
+  }
   let winnerId = null;
   if (match.score1 > match.score2) {
     winnerId = match.player1_id;
@@ -1114,6 +1172,24 @@ router.post('/results/:matchId/approve', validate(approveResultSchema), asyncHan
       score1: match.score1,
       score2: match.score2
     });
+
+    if (winnerId && Number(match.match_fee) > 0) {
+      await conn.execute(
+        `INSERT INTO wallets (user_id, balance)
+         VALUES (:user_id, 0)
+         ON CONFLICT (user_id) DO NOTHING`,
+        { user_id: winnerId }
+      );
+      await conn.execute(
+        `UPDATE wallets SET balance = balance + :amount WHERE user_id = :user_id`,
+        { amount: match.match_fee, user_id: winnerId }
+      );
+      await conn.execute(
+        `INSERT INTO wallet_transactions (user_id, amount, type, reference_payment_id)
+         VALUES (:user_id, :amount, 'credit', NULL)`,
+        { user_id: winnerId, amount: match.match_fee }
+      );
+    }
   });
 
   await notifyUsers(db, [match.player1_id, match.player2_id], 'result_approved', {
