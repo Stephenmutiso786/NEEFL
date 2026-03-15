@@ -425,7 +425,7 @@ router.post('/matches/:id/viewer', optionalAuth, asyncHandler(async (req, res) =
     const [[current]] = await conn.query(
       `SELECT COUNT(*) as count
        FROM match_viewers
-       WHERE match_id = :match_id AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 60 SECOND)`,
+       WHERE match_id = :match_id AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 20 SECOND)`,
       { match_id: matchId }
     );
     await conn.execute(
@@ -445,7 +445,7 @@ router.get('/matches/:id/viewers', asyncHandler(async (req, res) => {
   const [[countRow]] = await db.query(
     `SELECT COUNT(*) as count
      FROM match_viewers
-     WHERE match_id = :match_id AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 60 SECOND)`,
+     WHERE match_id = :match_id AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 20 SECOND)`,
     { match_id: matchId }
   );
   const [rows] = await db.query(
@@ -456,7 +456,7 @@ router.get('/matches/:id/viewers', asyncHandler(async (req, res) => {
      WHERE mv.match_id = :match_id
        AND mv.user_id IS NOT NULL
        AND u.privacy_presence = 1
-       AND mv.last_seen_at >= DATE_SUB(NOW(), INTERVAL 60 SECOND)
+       AND mv.last_seen_at >= DATE_SUB(NOW(), INTERVAL 20 SECOND)
      GROUP BY mv.user_id
      ORDER BY mv.last_seen_at DESC
      LIMIT 12`,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api, getToken, getUserRole } from '../lib/api.js';
 
 const platformLabel = {
@@ -16,10 +17,20 @@ const formatDateTime = (value) => {
 
 const getViewerId = () => {
   const key = 'neefl_viewer_id';
-  const existing = window.localStorage.getItem(key);
-  if (existing) return existing;
+  // Use sessionStorage so each tab/session counts as its own viewer (more accurate for "live now").
+  // Fallbacks are best-effort; viewer tracking should never crash the page.
+  try {
+    const existing = window.sessionStorage.getItem(key);
+    if (existing) return existing;
+  } catch (err) {
+    // ignore
+  }
   const value = window.crypto?.randomUUID ? window.crypto.randomUUID() : `viewer_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-  window.localStorage.setItem(key, value);
+  try {
+    window.sessionStorage.setItem(key, value);
+  } catch (err) {
+    // ignore
+  }
   return value;
 };
 
@@ -60,6 +71,8 @@ const getTwitchChannel = (link) => {
 };
 
 export default function Streams() {
+  const [searchParams] = useSearchParams();
+  const requestedMatchId = searchParams.get('match');
   const token = getToken();
   const role = getUserRole();
   const canSubmit = Boolean(token) && ['player', 'supervisor', 'referee', 'admin', 'broadcaster'].includes(role);
@@ -99,6 +112,7 @@ export default function Streams() {
   const [muted, setMuted] = useState(false);
   const [quality, setQuality] = useState('auto');
   const playerRef = useRef(null);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const mergedMatches = useMemo(() => {
     const map = new Map();
@@ -244,6 +258,11 @@ export default function Streams() {
   }, [canApproveStream]);
 
   useEffect(() => {
+    if (!requestedMatchId) return;
+    setSelectedMatchId(String(requestedMatchId));
+  }, [requestedMatchId]);
+
+  useEffect(() => {
     if (!selectedMatchId) return;
     api(`/api/matches/${selectedMatchId}`, { auth: false })
       .then((data) => setMatch(data.match))
@@ -260,6 +279,11 @@ export default function Streams() {
   }, [selectedMatchId]);
 
   useEffect(() => {
+    // If the stream changes (or a new one is approved), wait for the player to load before counting viewers.
+    setIframeLoaded(false);
+  }, [selectedMatchId, stream?.id]);
+
+  useEffect(() => {
     if (!selectedMatchId) return;
     const interval = setInterval(() => {
       loadLiveData(selectedMatchId);
@@ -274,16 +298,37 @@ export default function Streams() {
 
   useEffect(() => {
     if (!selectedMatchId) return;
+    // Only count a viewer when there is an approved stream to actually watch.
+    if (!stream?.id || streamAccessError) return;
+    // Wait until the iframe is loaded once so we don't count "drive-by" match selections.
+    if (!iframeLoaded) return;
+
     const viewerId = getViewerId();
-    const interval = setInterval(() => {
+    let cancelled = false;
+
+    const ping = () => {
+      if (cancelled) return;
+      if (document.visibilityState === 'hidden') return;
       api(`/api/public/matches/${selectedMatchId}/viewer`, {
         method: 'POST',
-        auth: Boolean(token),
         body: { viewer_id: viewerId }
       }).catch(() => {});
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [selectedMatchId]);
+    };
+
+    // Track immediately, then keep alive.
+    ping();
+    const interval = window.setInterval(ping, 5000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') ping();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [selectedMatchId, stream?.id, streamAccessError, iframeLoaded]);
 
   useEffect(() => {
     if (!match?.scheduled_at) {
@@ -370,13 +415,13 @@ export default function Streams() {
         message: response?.status === 'live' ? 'Stream is live.' : 'Stream submitted. Await approval.'
       });
       setStreamForm({
-        match_id: '',
-        stream_platform: 'youtube',
+        match_id: selectedMatchId ? String(selectedMatchId) : streamForm.match_id,
+        stream_platform: streamForm.stream_platform || 'youtube',
         stream_link: '',
         stream_link_hd: '',
         stream_link_sd: '',
         stream_link_audio: '',
-        access_level: 'public'
+        access_level: streamForm.access_level || 'public'
       });
       loadPending();
       loadStream(selectedMatchId);
@@ -488,6 +533,7 @@ export default function Streams() {
                   className="h-[280px] w-full md:h-[420px]"
                   allow="autoplay; encrypted-media; fullscreen"
                   allowFullScreen
+                  onLoad={() => setIframeLoaded(true)}
                 />
               ) : (
                 <div className="grid h-[280px] w-full place-items-center text-sm text-ink-500 md:h-[420px]">
@@ -610,13 +656,21 @@ export default function Streams() {
 
             <div className="scoreboard">
               <p className="label">Live Viewers</p>
-              <p className="mt-3 text-sm text-ink-700">{viewerInfo.count} watching now</p>
+              <p className="mt-3 text-sm text-ink-700">
+                {viewerInfo.count} watching now
+                {viewerInfo.count > viewerInfo.viewers.length && (
+                  <span className="ml-2 text-xs text-ink-500">
+                    ({viewerInfo.count - viewerInfo.viewers.length} guests)
+                  </span>
+                )}
+              </p>
               <div className="mt-3 grid gap-1 text-xs text-ink-500">
                 {viewerInfo.viewers.map((viewer) => (
                   <span key={viewer.user_id}>{viewer.gamer_tag}</span>
                 ))}
-                {!viewerInfo.viewers.length && (
-                  <span>No public viewers yet.</span>
+                {!viewerInfo.viewers.length && viewerInfo.count === 0 && <span>No viewers yet.</span>}
+                {!viewerInfo.viewers.length && viewerInfo.count > 0 && (
+                  <span>Guests are watching. Log in to show your gamer tag.</span>
                 )}
               </div>
             </div>
@@ -830,8 +884,15 @@ export default function Streams() {
                 className="input"
                 value={streamForm.stream_link}
                 onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_link: e.target.value }))}
+                placeholder="YouTube: https://youtube.com/watch?v=VIDEO_ID (or embed/live_stream link)"
                 required
               />
+              {streamForm.stream_platform === 'youtube' && (
+                <p className="mt-1 text-xs text-ink-500">
+                  Tip: YouTube handle links like <span className="font-semibold">/&#64;channel/live</span> usually cannot be embedded.
+                  Use a video link or an embed link like <span className="font-semibold">youtube.com/embed/live_stream?channel=CHANNEL_ID</span>.
+                </p>
+              )}
             </div>
             <div>
               <label className="label">HD Link (optional)</label>

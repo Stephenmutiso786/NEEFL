@@ -28,6 +28,18 @@ export const updateTournamentSchema = z.object({
   status: z.enum(['draft', 'open', 'closed', 'ongoing', 'completed']).optional()
 });
 
+export const createMatchSchema = z.object({
+  tournament_id: z.number().int().positive(),
+  player1_id: z.number().int().positive(),
+  player2_id: z.number().int().positive(),
+  referee_id: z.number().int().positive().optional(),
+  round: z.string().max(64).optional(),
+  scheduled_at: z.string().min(3),
+  odds_home: z.number().positive().optional(),
+  odds_draw: z.number().positive().optional(),
+  odds_away: z.number().positive().optional()
+});
+
 export const updateOddsSchema = z.object({
   odds_home: z.number().positive(),
   odds_draw: z.number().positive(),
@@ -96,4 +108,8 @@ export const featuredMatchSchema = z.object({
 
 export const premiumSchema = z.object({
   is_premium: z.boolean()
+});
+
+export const tournamentEntryStatusSchema = z.object({
+  status: z.enum(['pending', 'paid', 'approved', 'withdrawn'])
 });

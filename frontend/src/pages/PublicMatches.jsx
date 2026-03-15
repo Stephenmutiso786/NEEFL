@@ -51,6 +51,9 @@ export default function PublicMatches() {
                 <span className="score-pill glow-ring">{match.score2 ?? '-'}</span>
                 <span className="text-sm font-semibold text-ink-900">{match.player2_tag || 'TBD'}</span>
               </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link className="btn-ghost" to={`/streams?match=${match.id}`}>Watch Live</Link>
+              </div>
             </div>
           ))}
           {!live.length && (
@@ -82,6 +85,9 @@ export default function PublicMatches() {
                 <span>Draw {match.odds_draw}</span>
                 <span>Away {match.odds_away}</span>
               </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link className="btn-ghost" to={`/streams?match=${match.id}`}>View Details</Link>
+              </div>
             </div>
           ))}
           {!upcoming.length && (
@@ -104,6 +110,9 @@ export default function PublicMatches() {
                 <span className="score-pill">{match.score1 ?? '-'}</span>
                 <span className="score-pill">{match.score2 ?? '-'}</span>
                 <span className="text-sm font-semibold text-ink-900">{match.player2_tag || 'TBD'}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link className="btn-ghost" to={`/streams?match=${match.id}`}>Replay / Stream</Link>
               </div>
             </div>
           ))}

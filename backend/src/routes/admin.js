@@ -11,6 +11,7 @@ import {
   setRoleSchema,
   rejectResultSchema,
   updateTournamentSchema,
+  createMatchSchema,
   settingsSchema,
   updateOddsSchema,
   broadcastControlSchema,
@@ -21,7 +22,8 @@ import {
   chatSettingsSchema,
   chatMuteSchema,
   featuredMatchSchema,
-  premiumSchema
+  premiumSchema,
+  tournamentEntryStatusSchema
 } from '../validators/admin.js';
 import { applyMatchStats } from '../services/statsService.js';
 import { settleBetsForMatch, voidBetsForMatch } from '../services/bettingService.js';
@@ -200,6 +202,61 @@ router.get('/tournaments', asyncHandler(async (req, res) => {
   res.json({ tournaments: rows });
 }));
 
+router.get('/tournaments/:id/entries', asyncHandler(async (req, res) => {
+  const tournamentId = Number(req.params.id);
+  const [rows] = await db.query(
+    `SELECT e.id, e.tournament_id, e.player_id, e.status, e.payment_id, e.created_at,
+            u.email, u.phone,
+            p.gamer_tag
+     FROM tournament_entries e
+     JOIN users u ON u.id = e.player_id
+     LEFT JOIN players p ON p.user_id = e.player_id
+     WHERE e.tournament_id = :tournament_id
+     ORDER BY e.created_at DESC`,
+    { tournament_id: tournamentId }
+  );
+  res.json({ entries: rows });
+}));
+
+router.post('/tournament-entries/:id/status', validate(tournamentEntryStatusSchema), asyncHandler(async (req, res) => {
+  const entryId = Number(req.params.id);
+  const { status } = req.body;
+
+  const [rows] = await db.query(
+    `SELECT id, tournament_id, player_id, status AS current_status
+     FROM tournament_entries
+     WHERE id = :id`,
+    { id: entryId }
+  );
+  if (!rows.length) {
+    return res.status(404).json({ error: 'not_found' });
+  }
+  const entry = rows[0];
+
+  await db.query(
+    `UPDATE tournament_entries
+     SET status = :status
+     WHERE id = :id`,
+    { status, id: entryId }
+  );
+
+  await notifyUsers(db, [entry.player_id], 'tournament_entry_status', {
+    tournament_id: entry.tournament_id,
+    status
+  });
+
+  await logAudit(db, {
+    actorUserId: req.user.id,
+    action: 'tournament_entry_status',
+    entityType: 'tournament_entry',
+    entityId: entryId,
+    ip: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+
+  res.status(204).send();
+}));
+
 router.put('/tournaments/:id', validate(updateTournamentSchema), asyncHandler(async (req, res) => {
   const updates = req.body;
   await db.query(
@@ -240,6 +297,113 @@ router.delete('/tournaments/:id', asyncHandler(async (req, res) => {
     userAgent: req.headers['user-agent']
   });
   res.status(204).send();
+}));
+
+router.post('/matches', validate(createMatchSchema), asyncHandler(async (req, res) => {
+  const {
+    tournament_id,
+    player1_id,
+    player2_id,
+    referee_id,
+    round,
+    scheduled_at,
+    odds_home,
+    odds_draw,
+    odds_away
+  } = req.body;
+
+  if (player1_id === player2_id) {
+    return res.status(400).json({ error: 'same_players' });
+  }
+
+  const [[tournament]] = await db.query(
+    'SELECT id FROM tournaments WHERE id = :id',
+    { id: tournament_id }
+  );
+  if (!tournament) {
+    return res.status(404).json({ error: 'tournament_not_found' });
+  }
+
+  const [players] = await db.query(
+    `SELECT id, status
+     FROM users
+     WHERE id IN (:player1_id, :player2_id)`,
+    { player1_id, player2_id }
+  );
+  if (players.length !== 2) {
+    return res.status(404).json({ error: 'player_not_found' });
+  }
+  if (players.some((row) => row.status !== 'active')) {
+    return res.status(400).json({ error: 'player_not_active' });
+  }
+
+  if (referee_id) {
+    const [[ref]] = await db.query(
+      `SELECT id FROM users
+       WHERE id = :id AND status = 'active' AND role IN ('admin','supervisor','referee','moderator')`,
+      { id: referee_id }
+    );
+    if (!ref) {
+      return res.status(400).json({ error: 'invalid_referee' });
+    }
+  }
+
+  const [entries] = await db.query(
+    `SELECT player_id, status
+     FROM tournament_entries
+     WHERE tournament_id = :tournament_id AND player_id IN (:player1_id, :player2_id)`,
+    { tournament_id, player1_id, player2_id }
+  );
+  const entryMap = new Map(entries.map((row) => [Number(row.player_id), row.status]));
+  const allowed = new Set(['approved', 'paid']);
+  const invalidPlayers = [player1_id, player2_id].filter((id) => !allowed.has(entryMap.get(id)));
+  if (invalidPlayers.length) {
+    return res.status(400).json({ error: 'entry_not_approved', players: invalidPlayers });
+  }
+
+  const scheduled = dayjs(scheduled_at);
+  if (!scheduled.isValid()) {
+    return res.status(400).json({ error: 'invalid_datetime' });
+  }
+  const scheduledAt = scheduled.format('YYYY-MM-DD HH:mm:ss');
+
+  const [result] = await db.query(
+    `INSERT INTO matches (
+        tournament_id, round, player1_id, player2_id, referee_id, scheduled_at, status, odds_home, odds_draw, odds_away
+     )
+     VALUES (
+        :tournament_id, :round, :player1_id, :player2_id, :referee_id, :scheduled_at,
+        'scheduled', :odds_home, :odds_draw, :odds_away
+     )`,
+    {
+      tournament_id,
+      round: round || null,
+      player1_id,
+      player2_id,
+      referee_id: referee_id || null,
+      scheduled_at: scheduledAt,
+      odds_home: odds_home ?? 1,
+      odds_draw: odds_draw ?? 1,
+      odds_away: odds_away ?? 1
+    }
+  );
+
+  await notifyUsers(db, [player1_id, player2_id], 'match_scheduled', {
+    tournament_id,
+    round: round || 'Match',
+    scheduled_at: scheduledAt
+  });
+
+  await logAudit(db, {
+    actorUserId: req.user.id,
+    action: 'match_created',
+    entityType: 'match',
+    entityId: result.insertId,
+    ip: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+
+  res.status(201).json({ id: result.insertId });
 }));
 
 router.get('/matches', asyncHandler(async (req, res) => {
@@ -643,7 +807,7 @@ router.get('/matches/:id/viewers', asyncHandler(async (req, res) => {
   const [[current]] = await db.query(
     `SELECT COUNT(*) as count
      FROM match_viewers
-     WHERE match_id = :match_id AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 60 SECOND)`,
+     WHERE match_id = :match_id AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 20 SECOND)`,
     { match_id: matchId }
   );
   res.json({

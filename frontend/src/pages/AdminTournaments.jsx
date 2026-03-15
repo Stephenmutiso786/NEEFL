@@ -4,6 +4,8 @@ import { api } from '../lib/api.js';
 export default function AdminTournaments() {
   const [tournaments, setTournaments] = useState([]);
   const [seasons, setSeasons] = useState([]);
+  const [entriesTournamentId, setEntriesTournamentId] = useState('');
+  const [entries, setEntries] = useState([]);
   const [status, setStatus] = useState({ state: 'idle', message: '' });
   const [createForm, setCreateForm] = useState({
     name: '',
@@ -100,6 +102,34 @@ export default function AdminTournaments() {
       });
       setStatus({ state: 'success', message: 'Fixtures scheduled.' });
       setScheduleForm({ id: '', start_datetime: '', match_time: '18:00', days_between_rounds: 1 });
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const loadEntries = async (tournamentId) => {
+    const id = tournamentId || entriesTournamentId;
+    if (!id) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      const data = await api(`/api/admin/tournaments/${id}/entries`);
+      setEntries(data.entries || []);
+      setStatus({ state: 'success', message: `Loaded ${data.entries?.length || 0} entries.` });
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const updateEntryStatus = async (entryId, nextStatus) => {
+    if (!entryId) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/admin/tournament-entries/${entryId}/status`, {
+        method: 'POST',
+        body: { status: nextStatus }
+      });
+      setStatus({ state: 'success', message: `Entry updated (${nextStatus}).` });
+      loadEntries();
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
     }
@@ -347,6 +377,80 @@ export default function AdminTournaments() {
             <button className="btn-secondary" type="submit">Schedule Fixtures</button>
           </div>
         </form>
+      </section>
+
+      <section className="card p-6">
+        <h3 className="section-title">Tournament Entries</h3>
+        <p className="section-subtitle">Approve or mark paid entries before scheduling fixtures.</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto]">
+          <select
+            className="input"
+            value={entriesTournamentId}
+            onChange={(e) => {
+              setEntriesTournamentId(e.target.value);
+              setEntries([]);
+            }}
+          >
+            <option value="">Select tournament</option>
+            {tournaments.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} (ID {t.id})
+              </option>
+            ))}
+          </select>
+          <button className="btn-secondary" type="button" onClick={() => loadEntries()}>
+            Load Entries
+          </button>
+        </div>
+        <div className="mt-4 grid gap-3">
+          {entries.map((entry) => (
+            <div key={entry.id} className="scoreboard">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-ink-900">{entry.gamer_tag || `User ${entry.player_id}`}</p>
+                  <p className="text-xs text-ink-500">{entry.email || entry.phone || 'No contact'}</p>
+                  <p className="text-xs text-ink-500">Status: {entry.status}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    disabled={entry.status === 'approved'}
+                    onClick={() => updateEntryStatus(entry.id, 'approved')}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    disabled={entry.status === 'paid'}
+                    onClick={() => updateEntryStatus(entry.id, 'paid')}
+                  >
+                    Mark Paid
+                  </button>
+                  <button
+                    className="btn-ghost"
+                    type="button"
+                    disabled={entry.status === 'withdrawn'}
+                    onClick={() => updateEntryStatus(entry.id, 'withdrawn')}
+                  >
+                    Withdraw
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {!entriesTournamentId && (
+            <div className="rounded-2xl border border-dashed border-sand-200 p-6 text-sm text-ink-500">
+              Select a tournament to manage entries.
+            </div>
+          )}
+          {entriesTournamentId && !entries.length && (
+            <div className="rounded-2xl border border-dashed border-sand-200 p-6 text-sm text-ink-500">
+              No entries found for this tournament.
+            </div>
+          )}
+        </div>
       </section>
 
       {status.message && (
