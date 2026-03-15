@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
+import fs from 'fs';
 import { env } from './config/env.js';
 import { errorHandler } from './middleware/error.js';
 import { maintenanceGate } from './middleware/maintenance.js';
@@ -40,6 +41,10 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/uploads', express.static(path.resolve(env.uploadDir)));
+const publicDir = path.resolve('public');
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+}
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
@@ -72,6 +77,12 @@ app.use('/api/achievements', achievementRoutes);
 app.use('/api/seasons', seasonRoutes);
 
 app.use(errorHandler);
+
+if (fs.existsSync(publicDir)) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+}
 
 app.listen(env.port, () => {
   console.log(`NEEFL API running on port ${env.port}`);

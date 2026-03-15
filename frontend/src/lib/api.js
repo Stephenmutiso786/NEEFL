@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 export function getToken() {
   return window.sessionStorage.getItem('neefl_token') || window.localStorage.getItem('neefl_token');
@@ -85,7 +85,7 @@ export async function api(path, options = {}) {
     }
   }
 
-  const response = await fetch(`${API_BASE}${path}`, config);
+  const response = await fetch(API_BASE ? `${API_BASE}${path}` : path, config);
   const text = await response.text();
   const data = parseResponseText(text);
 
@@ -101,7 +101,7 @@ export async function api(path, options = {}) {
 }
 
 export async function healthCheck() {
-  const response = await fetch(`${API_BASE}/health`);
+  const response = await fetch(API_BASE ? `${API_BASE}/health` : '/health');
   const text = await response.text();
   return parseResponseText(text);
 }
