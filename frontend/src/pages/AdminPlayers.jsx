@@ -7,6 +7,7 @@ export default function AdminPlayers() {
   const [roleUpdate, setRoleUpdate] = useState({ id: '', role: 'player' });
   const [editForm, setEditForm] = useState({ id: '', gamer_tag: '', real_name: '', country: '', region: '', preferred_team: '' });
   const [premiumForm, setPremiumForm] = useState({ id: '', is_premium: false });
+  const [resetForm, setResetForm] = useState({ id: '', new_password: '', confirm: '', show: false });
 
   const load = () => {
     api('/api/admin/players')
@@ -35,6 +36,26 @@ export default function AdminPlayers() {
       await api(`/api/admin/users/${id}/ban`, { method: 'POST' });
       setStatus({ state: 'success', message: 'Player banned.' });
       load();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const resetPassword = async (event) => {
+    event.preventDefault();
+    if (!resetForm.id) return;
+    if (resetForm.new_password !== resetForm.confirm) {
+      setStatus({ state: 'error', message: 'Passwords do not match.' });
+      return;
+    }
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/admin/users/${resetForm.id}/reset-password`, {
+        method: 'POST',
+        body: { new_password: resetForm.new_password }
+      });
+      setStatus({ state: 'success', message: 'Password reset.' });
+      setResetForm({ id: '', new_password: '', confirm: '', show: false });
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
     }
@@ -125,8 +146,44 @@ export default function AdminPlayers() {
                   <td className="py-2 text-ink-700">{player.status}</td>
                   <td className="py-2">
                     <div className="flex flex-wrap gap-2">
-                      <button className="btn-secondary" type="button" onClick={() => approve(player.id)}>Approve</button>
-                      <button className="btn-secondary" type="button" onClick={() => ban(player.id)}>Ban</button>
+                      {player.status !== 'active' && (
+                        <button className="btn-secondary" type="button" onClick={() => approve(player.id)}>Approve</button>
+                      )}
+                      {player.status !== 'banned' ? (
+                        <button className="btn-secondary" type="button" onClick={() => ban(player.id)}>Ban</button>
+                      ) : (
+                        <button className="btn-secondary" type="button" onClick={() => approve(player.id)}>Unban</button>
+                      )}
+                      <button
+                        className="btn-secondary"
+                        type="button"
+                        onClick={() => {
+                          setRoleUpdate({ id: String(player.id), role: player.role || 'player' });
+                          setPremiumForm({ id: String(player.id), is_premium: Boolean(player.is_premium) });
+                          setEditForm({
+                            id: String(player.id),
+                            gamer_tag: player.gamer_tag || '',
+                            real_name: player.real_name || '',
+                            country: player.country || '',
+                            region: player.region || '',
+                            preferred_team: player.preferred_team || ''
+                          });
+                          setResetForm((prev) => ({ ...prev, id: String(player.id) }));
+                          window.scrollTo({ top: document.body.scrollHeight / 3, behavior: 'smooth' });
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        type="button"
+                        onClick={() => {
+                          setResetForm((prev) => ({ ...prev, id: String(player.id) }));
+                          window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+                        }}
+                      >
+                        Reset Password
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -218,6 +275,49 @@ export default function AdminPlayers() {
           </div>
           <div className="md:col-span-2">
             <button className="btn-secondary" type="submit">Update Player</button>
+          </div>
+        </form>
+      </section>
+
+      <section className="card p-6">
+        <h3 className="card-title">Reset User Password</h3>
+        <p className="section-subtitle">Sets a new password and unlocks the account (use strong passwords).</p>
+        <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={resetPassword}>
+          <div>
+            <label className="label">User ID</label>
+            <input className="input" value={resetForm.id} onChange={(e) => setResetForm((prev) => ({ ...prev, id: e.target.value }))} required />
+          </div>
+          <div className="md:col-span-2">
+            <label className="label">New Password</label>
+            <div className="relative">
+              <input
+                className="input pr-12"
+                type={resetForm.show ? 'text' : 'password'}
+                value={resetForm.new_password}
+                onChange={(e) => setResetForm((prev) => ({ ...prev, new_password: e.target.value }))}
+                required
+              />
+              <button
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-ink-500"
+                type="button"
+                onClick={() => setResetForm((prev) => ({ ...prev, show: !prev.show }))}
+              >
+                {resetForm.show ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className="label">Confirm Password</label>
+            <input
+              className="input"
+              type={resetForm.show ? 'text' : 'password'}
+              value={resetForm.confirm}
+              onChange={(e) => setResetForm((prev) => ({ ...prev, confirm: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="md:col-span-2">
+            <button className="btn-secondary" type="submit">Reset Password</button>
           </div>
         </form>
       </section>

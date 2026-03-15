@@ -12,6 +12,7 @@ import {
   rejectResultSchema,
   updateTournamentSchema,
   createMatchSchema,
+  updateMatchSchema,
   settingsSchema,
   updateOddsSchema,
   broadcastControlSchema,
@@ -23,7 +24,8 @@ import {
   chatMuteSchema,
   featuredMatchSchema,
   premiumSchema,
-  tournamentEntryStatusSchema
+  tournamentEntryStatusSchema,
+  resetUserPasswordSchema
 } from '../validators/admin.js';
 import { applyMatchStats } from '../services/statsService.js';
 import { settleBetsForMatch, voidBetsForMatch } from '../services/bettingService.js';
@@ -33,6 +35,7 @@ import { logActivity } from '../services/activityService.js';
 import { sendNotificationSchema } from '../validators/notifications.js';
 import { runDatabaseBackup } from '../services/backupService.js';
 import { updateProfileSchema } from '../validators/players.js';
+import { hashPassword } from '../lib/crypto.js';
 
 const router = Router();
 
@@ -73,7 +76,8 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
 router.get('/players', asyncHandler(async (req, res) => {
   const [rows] = await db.query(
     `SELECT u.id, u.email, u.phone, u.role, u.status, u.is_premium, u.kyc_status, u.created_at,
-            p.gamer_tag, p.rank_points, p.wins, p.losses, p.goals_scored, p.division
+            p.gamer_tag, p.real_name, p.country, p.region, p.preferred_team,
+            p.rank_points, p.wins, p.losses, p.goals_scored, p.division
      FROM users u
      LEFT JOIN players p ON p.user_id = u.id
      ORDER BY u.created_at DESC`
@@ -149,6 +153,28 @@ router.post('/users/:id/ban', asyncHandler(async (req, res) => {
   await logAudit(db, {
     actorUserId: req.user.id,
     action: 'user_banned',
+    entityType: 'user',
+    entityId: req.params.id,
+    ip: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+  res.status(204).send();
+}));
+
+router.post('/users/:id/reset-password', validate(resetUserPasswordSchema), asyncHandler(async (req, res) => {
+  const passwordHash = await hashPassword(req.body.new_password);
+  await db.query(
+    `UPDATE users
+     SET password_hash = :password_hash,
+         failed_login_attempts = 0,
+         locked_until = NULL
+     WHERE id = :id`,
+    { password_hash: passwordHash, id: req.params.id }
+  );
+  await notifyUsers(db, [Number(req.params.id)], 'password_reset', { user_id: Number(req.params.id) });
+  await logAudit(db, {
+    actorUserId: req.user.id,
+    action: 'user_password_reset',
     entityType: 'user',
     entityId: req.params.id,
     ip: req.ip,
@@ -413,6 +439,7 @@ router.get('/matches', asyncHandler(async (req, res) => {
 
   const [rows] = await db.query(
     `SELECT m.id, m.tournament_id, m.round, m.player1_id, m.player2_id, m.scheduled_at, m.status, m.score1, m.score2,
+            m.referee_id,
             m.odds_home, m.odds_draw, m.odds_away,
             p1.gamer_tag as player1_tag,
             p2.gamer_tag as player2_tag,
@@ -428,6 +455,128 @@ router.get('/matches', asyncHandler(async (req, res) => {
     params
   );
   res.json({ matches: rows });
+}));
+
+router.put('/matches/:id', validate(updateMatchSchema), asyncHandler(async (req, res) => {
+  const matchId = Number(req.params.id);
+  const { scheduled_at, round, referee_id, status } = req.body;
+
+  const updates = [];
+  const params = { id: matchId };
+
+  if (scheduled_at !== undefined) {
+    const scheduled = dayjs(scheduled_at);
+    if (!scheduled.isValid()) {
+      return res.status(400).json({ error: 'invalid_datetime' });
+    }
+    updates.push('scheduled_at = :scheduled_at');
+    params.scheduled_at = scheduled.format('YYYY-MM-DD HH:mm:ss');
+  }
+
+  if (round !== undefined) {
+    updates.push('round = :round');
+    params.round = round || null;
+  }
+
+  if (referee_id !== undefined) {
+    if (referee_id === null) {
+      updates.push('referee_id = NULL');
+    } else {
+      const [[ref]] = await db.query(
+        'SELECT id, role, status FROM users WHERE id = :id',
+        { id: referee_id }
+      );
+      if (!ref) {
+        return res.status(404).json({ error: 'referee_not_found' });
+      }
+      if (!['referee', 'supervisor', 'admin', 'moderator'].includes(ref.role)) {
+        return res.status(400).json({ error: 'invalid_referee_role' });
+      }
+      if (ref.status !== 'active') {
+        return res.status(400).json({ error: 'referee_not_active' });
+      }
+      updates.push('referee_id = :referee_id');
+      params.referee_id = referee_id;
+    }
+  }
+
+  if (status !== undefined) {
+    updates.push('status = :status');
+    params.status = status;
+  }
+
+  if (!updates.length) {
+    return res.status(400).json({ error: 'no_updates' });
+  }
+
+  const [result] = await db.query(
+    `UPDATE matches SET ${updates.join(', ')} WHERE id = :id`,
+    params
+  );
+  if (!result.affectedRows) {
+    return res.status(404).json({ error: 'not_found' });
+  }
+
+  await logAudit(db, {
+    actorUserId: req.user.id,
+    action: 'match_updated',
+    entityType: 'match',
+    entityId: matchId,
+    ip: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+
+  res.status(204).send();
+}));
+
+router.delete('/matches/:id', asyncHandler(async (req, res) => {
+  const matchId = Number(req.params.id);
+  const [[match]] = await db.query('SELECT id FROM matches WHERE id = :id', { id: matchId });
+  if (!match) {
+    return res.status(404).json({ error: 'not_found' });
+  }
+
+  const [[activity]] = await db.query(
+    `SELECT
+        (SELECT COUNT(*) FROM match_results WHERE match_id = :id) AS results_count,
+        (SELECT COUNT(*) FROM disputes WHERE match_id = :id) AS disputes_count,
+        (SELECT COUNT(*) FROM bets WHERE match_id = :id) AS bets_count,
+        (SELECT COUNT(*) FROM live_streams WHERE match_id = :id) AS live_streams_count
+     `,
+    { id: matchId }
+  );
+
+  const hasActivity =
+    Number(activity?.results_count || 0) > 0 ||
+    Number(activity?.disputes_count || 0) > 0 ||
+    Number(activity?.bets_count || 0) > 0 ||
+    Number(activity?.live_streams_count || 0) > 0;
+
+  if (hasActivity) {
+    return res.status(409).json({ error: 'match_has_activity' });
+  }
+
+  await db.tx(async (conn) => {
+    await conn.execute('DELETE FROM match_viewers WHERE match_id = :id', { id: matchId });
+    await conn.execute('DELETE FROM match_chat_messages WHERE match_id = :id', { id: matchId });
+    await conn.execute('DELETE FROM match_chat_settings WHERE match_id = :id', { id: matchId });
+    await conn.execute('DELETE FROM match_replays WHERE match_id = :id', { id: matchId });
+    await conn.execute('DELETE FROM match_live_stats WHERE match_id = :id', { id: matchId });
+    await conn.execute('DELETE FROM match_events WHERE match_id = :id', { id: matchId });
+    await conn.execute('DELETE FROM streams WHERE match_id = :id', { id: matchId });
+    await conn.execute('DELETE FROM matches WHERE id = :id', { id: matchId });
+  });
+
+  await logAudit(db, {
+    actorUserId: req.user.id,
+    action: 'match_deleted',
+    entityType: 'match',
+    entityId: matchId,
+    ip: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+
+  res.status(204).send();
 }));
 
 router.put('/matches/:id/odds', validate(updateOddsSchema), asyncHandler(async (req, res) => {

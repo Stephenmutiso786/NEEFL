@@ -17,7 +17,17 @@ export default function AdminTournaments() {
     end_date: '',
     season_id: ''
   });
-  const [updateForm, setUpdateForm] = useState({ id: '', name: '', entry_fee: '', prize_pool: '', status: 'open' });
+  const [updateForm, setUpdateForm] = useState({
+    id: '',
+    name: '',
+    format: 'league',
+    entry_fee: '',
+    prize_pool: '',
+    rules: '',
+    start_date: '',
+    end_date: '',
+    status: 'open'
+  });
   const [scheduleForm, setScheduleForm] = useState({ id: '', start_datetime: '', match_time: '18:00', days_between_rounds: 1 });
   const [seasonForm, setSeasonForm] = useState({ name: '', start_date: '', end_date: '', status: 'draft' });
   const [seasonUpdateForm, setSeasonUpdateForm] = useState({ id: '', name: '', start_date: '', end_date: '', status: 'draft' });
@@ -65,12 +75,16 @@ export default function AdminTournaments() {
         body: {
           status: updateForm.status || undefined,
           name: updateForm.name || undefined,
+          format: updateForm.format || undefined,
           entry_fee: updateForm.entry_fee ? Number(updateForm.entry_fee) : undefined,
-          prize_pool: updateForm.prize_pool ? Number(updateForm.prize_pool) : undefined
+          prize_pool: updateForm.prize_pool ? Number(updateForm.prize_pool) : undefined,
+          rules: updateForm.rules || undefined,
+          start_date: updateForm.start_date || undefined,
+          end_date: updateForm.end_date || undefined
         }
       });
       setStatus({ state: 'success', message: 'Tournament updated.' });
-      setUpdateForm({ id: '', name: '', entry_fee: '', prize_pool: '', status: 'open' });
+      setUpdateForm({ id: '', name: '', format: 'league', entry_fee: '', prize_pool: '', rules: '', start_date: '', end_date: '', status: 'open' });
       load();
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
@@ -303,11 +317,58 @@ export default function AdminTournaments() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="font-semibold text-ink-900">{tournament.name}</p>
-                  <p className="text-xs text-ink-500">{tournament.format} | {tournament.status}</p>
+                  <p className="text-xs text-ink-500">
+                    {tournament.format} | {tournament.status}
+                    {tournament.start_date ? ` · ${tournament.start_date}` : ''}
+                    {tournament.end_date ? ` → ${tournament.end_date}` : ''}
+                  </p>
                 </div>
-                <button className="btn-secondary" type="button" onClick={() => deleteTournament(tournament.id)}>
-                  Delete
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      setUpdateForm({
+                        id: String(tournament.id),
+                        name: tournament.name || '',
+                        format: tournament.format || 'league',
+                        entry_fee: tournament.entry_fee ?? '',
+                        prize_pool: tournament.prize_pool ?? '',
+                        rules: tournament.rules || '',
+                        start_date: tournament.start_date || '',
+                        end_date: tournament.end_date || '',
+                        status: tournament.status || 'open'
+                      });
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      setScheduleForm((prev) => ({ ...prev, id: String(tournament.id) }));
+                      window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+                    }}
+                  >
+                    Schedule
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      setEntriesTournamentId(String(tournament.id));
+                      setEntries([]);
+                      loadEntries(String(tournament.id));
+                    }}
+                  >
+                    Entries
+                  </button>
+                  <button className="btn-secondary" type="button" onClick={() => deleteTournament(tournament.id)}>
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -320,7 +381,7 @@ export default function AdminTournaments() {
       </section>
 
       <section className="card p-6">
-        <h3 className="section-title">Update Status</h3>
+        <h3 className="section-title">Edit Tournament</h3>
         <form className="mt-4 grid gap-4 md:grid-cols-3" onSubmit={updateTournament}>
           <div>
             <label className="label">Tournament ID</label>
@@ -331,12 +392,29 @@ export default function AdminTournaments() {
             <input className="input" value={updateForm.name} onChange={(e) => setUpdateForm((prev) => ({ ...prev, name: e.target.value }))} />
           </div>
           <div>
+            <label className="label">Format</label>
+            <select className="input" value={updateForm.format} onChange={(e) => setUpdateForm((prev) => ({ ...prev, format: e.target.value }))}>
+              <option value="league">League</option>
+              <option value="knockout">Knockout</option>
+              <option value="group">Group</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+          </div>
+          <div>
             <label className="label">Entry Fee</label>
             <input className="input" type="number" value={updateForm.entry_fee} onChange={(e) => setUpdateForm((prev) => ({ ...prev, entry_fee: e.target.value }))} />
           </div>
           <div>
             <label className="label">Prize Pool</label>
             <input className="input" type="number" value={updateForm.prize_pool} onChange={(e) => setUpdateForm((prev) => ({ ...prev, prize_pool: e.target.value }))} />
+          </div>
+          <div>
+            <label className="label">Start Date</label>
+            <input className="input" type="date" value={updateForm.start_date} onChange={(e) => setUpdateForm((prev) => ({ ...prev, start_date: e.target.value }))} />
+          </div>
+          <div>
+            <label className="label">End Date</label>
+            <input className="input" type="date" value={updateForm.end_date} onChange={(e) => setUpdateForm((prev) => ({ ...prev, end_date: e.target.value }))} />
           </div>
           <div>
             <label className="label">Status</label>
@@ -347,6 +425,10 @@ export default function AdminTournaments() {
               <option value="ongoing">Ongoing</option>
               <option value="completed">Completed</option>
             </select>
+          </div>
+          <div className="md:col-span-3">
+            <label className="label">Rules</label>
+            <textarea className="input min-h-[120px]" value={updateForm.rules} onChange={(e) => setUpdateForm((prev) => ({ ...prev, rules: e.target.value }))} />
           </div>
           <div className="flex items-end">
             <button className="btn-secondary" type="submit">Update</button>

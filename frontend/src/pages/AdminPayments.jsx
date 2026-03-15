@@ -19,6 +19,37 @@ export default function AdminPayments() {
     load();
   }, []);
 
+  const reviewWithdrawal = async (id, nextStatus) => {
+    if (!id) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      const notes = nextStatus === 'rejected'
+        ? window.prompt('Reject reason / notes (optional):', '') || undefined
+        : undefined;
+      await api(`/api/wallet/admin/withdrawals/${id}/review`, {
+        method: 'POST',
+        body: { status: nextStatus, notes }
+      });
+      setStatus({ state: 'success', message: `Withdrawal ${nextStatus}.` });
+      load();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const payoutWithdrawal = async (id) => {
+    if (!id) return;
+    if (!window.confirm(`Send M-Pesa payout for withdrawal #${id}?`)) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/wallet/admin/withdrawals/${id}/payout`, { method: 'POST' });
+      setStatus({ state: 'success', message: 'Payout sent.' });
+      load();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
   return (
     <div className="grid gap-6">
       <section className="card p-6">
@@ -62,6 +93,32 @@ export default function AdminPayments() {
               <p className="font-semibold text-ink-900">#{item.id} KES {item.amount}</p>
               <p className="text-xs text-ink-500">User {item.user_id} | {item.phone}</p>
               <p className="text-xs text-ink-500">Status: {item.status}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  className="btn-secondary"
+                  type="button"
+                  disabled={item.status !== 'pending'}
+                  onClick={() => reviewWithdrawal(item.id, 'approved')}
+                >
+                  Approve
+                </button>
+                <button
+                  className="btn-secondary"
+                  type="button"
+                  disabled={item.status !== 'pending'}
+                  onClick={() => reviewWithdrawal(item.id, 'rejected')}
+                >
+                  Reject
+                </button>
+                <button
+                  className="btn-primary"
+                  type="button"
+                  disabled={item.status !== 'approved'}
+                  onClick={() => payoutWithdrawal(item.id)}
+                >
+                  Pay Out
+                </button>
+              </div>
             </div>
           ))}
           {!withdrawals.length && (

@@ -40,10 +40,31 @@ export const createMatchSchema = z.object({
   odds_away: z.number().positive().optional()
 });
 
+export const updateMatchSchema = z.object({
+  scheduled_at: z.string().min(3).optional(),
+  round: z.string().max(64).optional(),
+  referee_id: z.number().int().positive().nullable().optional(),
+  status: z.enum(['scheduled', 'played', 'submitted', 'confirmed', 'disputed', 'forfeit', 'approved']).optional()
+});
+
 export const updateOddsSchema = z.object({
   odds_home: z.number().positive(),
   odds_draw: z.number().positive(),
   odds_away: z.number().positive()
+});
+
+const strongPassword = z.string().min(8).refine((value) => {
+  const hasUpper = /[A-Z]/.test(value);
+  const hasLower = /[a-z]/.test(value);
+  const hasNumber = /\d/.test(value);
+  const hasSymbol = /[^A-Za-z0-9]/.test(value);
+  return hasUpper && hasLower && hasNumber && hasSymbol;
+}, {
+  message: 'weak_password'
+});
+
+export const resetUserPasswordSchema = z.object({
+  new_password: strongPassword
 });
 
 export const settingsSchema = z.object({

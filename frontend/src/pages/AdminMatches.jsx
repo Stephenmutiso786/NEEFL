@@ -26,6 +26,19 @@ export default function AdminMatches() {
   const [rejectForm, setRejectForm] = useState({ matchId: '', reason: '' });
   const [oddsForm, setOddsForm] = useState({ matchId: '', home: '', draw: '', away: '' });
   const [oddsCalcId, setOddsCalcId] = useState('');
+  const [editMatchForm, setEditMatchForm] = useState({ id: '', scheduled_at: '', round: '', referee_id: '', status: 'scheduled' });
+
+  const toDateTimeLocal = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      if (value.includes('T')) return value.slice(0, 16);
+      if (value.includes(' ')) return value.replace(' ', 'T').slice(0, 16);
+      return value;
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 16);
+  };
 
   const load = () => {
     const query = statusFilter ? `?status=${statusFilter}` : '';
@@ -139,6 +152,53 @@ export default function AdminMatches() {
     try {
       await api(`/api/admin/results/${id}/approve`, { method: 'POST', body: { approve: true } });
       setStatus({ state: 'success', message: 'Result approved.' });
+      load();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const updateMatch = async (event) => {
+    event.preventDefault();
+    if (!editMatchForm.id) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/admin/matches/${editMatchForm.id}`, {
+        method: 'PUT',
+        body: {
+          scheduled_at: editMatchForm.scheduled_at || undefined,
+          round: editMatchForm.round || undefined,
+          referee_id: editMatchForm.referee_id ? Number(editMatchForm.referee_id) : undefined,
+          status: editMatchForm.status || undefined
+        }
+      });
+      setStatus({ state: 'success', message: 'Match updated.' });
+      setEditMatchForm({ id: '', scheduled_at: '', round: '', referee_id: '', status: 'scheduled' });
+      load();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const deleteMatch = async (id) => {
+    if (!id) return;
+    if (!window.confirm(`Delete match #${id}? This is only allowed if there are no results/bets/streams.`)) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/admin/matches/${id}`, { method: 'DELETE' });
+      setStatus({ state: 'success', message: 'Match deleted.' });
+      load();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
+  const quickReject = async (id) => {
+    const reason = window.prompt('Reject reason (optional):', '') || undefined;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/admin/results/${id}/reject`, { method: 'POST', body: { reason } });
+      setStatus({ state: 'success', message: 'Result rejected.' });
       load();
     } catch (err) {
       setStatus({ state: 'error', message: err.message });
@@ -376,7 +436,40 @@ export default function AdminMatches() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button className="btn-secondary" type="button" onClick={() => approve(match.id)}>Approve</button>
+                  <Link className="btn-secondary" to={`/streams?match=${match.id}`}>Stream</Link>
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      setEditMatchForm({
+                        id: String(match.id),
+                        scheduled_at: toDateTimeLocal(match.scheduled_at),
+                        round: match.round || '',
+                        referee_id: match.referee_id ? String(match.referee_id) : '',
+                        status: match.status || 'scheduled'
+                      });
+                      window.scrollTo({ top: document.body.scrollHeight / 3, behavior: 'smooth' });
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button className="btn-secondary" type="button" onClick={() => deleteMatch(match.id)}>Delete</button>
+                  <button
+                    className="btn-primary"
+                    type="button"
+                    disabled={!match.result_id}
+                    onClick={() => approve(match.id)}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    disabled={!match.result_id}
+                    onClick={() => quickReject(match.id)}
+                  >
+                    Reject
+                  </button>
                 </div>
               </div>
               <div className="mt-2 grid gap-2 md:grid-cols-3">
@@ -398,6 +491,44 @@ export default function AdminMatches() {
             </div>
           )}
         </div>
+      </section>
+
+      <section className="card p-6">
+        <h3 className="section-title">Edit / Reschedule Match</h3>
+        <p className="section-subtitle">Update kickoff time, round label, referee assignment, or status.</p>
+        <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={updateMatch}>
+          <div>
+            <label className="label">Match ID</label>
+            <input className="input" value={editMatchForm.id} onChange={(e) => setEditMatchForm((prev) => ({ ...prev, id: e.target.value }))} required />
+          </div>
+          <div>
+            <label className="label">Scheduled At</label>
+            <input className="input" type="datetime-local" value={editMatchForm.scheduled_at} onChange={(e) => setEditMatchForm((prev) => ({ ...prev, scheduled_at: e.target.value }))} />
+          </div>
+          <div>
+            <label className="label">Round</label>
+            <input className="input" value={editMatchForm.round} onChange={(e) => setEditMatchForm((prev) => ({ ...prev, round: e.target.value }))} placeholder="Final, Semi..." />
+          </div>
+          <div>
+            <label className="label">Referee ID</label>
+            <input className="input" value={editMatchForm.referee_id} onChange={(e) => setEditMatchForm((prev) => ({ ...prev, referee_id: e.target.value }))} placeholder="User ID" />
+          </div>
+          <div>
+            <label className="label">Status</label>
+            <select className="input" value={editMatchForm.status} onChange={(e) => setEditMatchForm((prev) => ({ ...prev, status: e.target.value }))}>
+              <option value="scheduled">Scheduled</option>
+              <option value="played">Played</option>
+              <option value="submitted">Submitted</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="disputed">Disputed</option>
+              <option value="forfeit">Forfeit</option>
+              <option value="approved">Approved</option>
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button className="btn-secondary" type="submit">Update Match</button>
+          </div>
+        </form>
       </section>
 
       <section className="card p-6">
