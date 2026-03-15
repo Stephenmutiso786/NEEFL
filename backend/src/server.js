@@ -34,7 +34,35 @@ import fraudRoutes from './routes/fraud.js';
 
 const app = express();
 
-app.use(helmet());
+const cspDirectives = {
+  ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+  'frame-src': [
+    "'self'",
+    'https://www.youtube.com',
+    'https://www.youtube-nocookie.com'
+  ],
+  'img-src': [
+    "'self'",
+    'data:',
+    'https://i.ytimg.com',
+    'https://*.ytimg.com'
+  ],
+  'media-src': [
+    "'self'",
+    'https://www.youtube.com',
+    'https://www.youtube-nocookie.com'
+  ]
+};
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: cspDirectives
+    },
+    crossOriginEmbedderPolicy: false
+  })
+);
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json({ limit: '2mb' }));

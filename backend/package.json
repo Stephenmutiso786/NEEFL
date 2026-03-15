@@ -7,7 +7,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "db:init": "node src/db/init.js",
-    "build:web": "npm install --include=dev --prefix ../frontend && npm run build --prefix ../frontend && node scripts/copy-frontend.js"
+    "build:web": "npm install --include=dev --prefix ../frontend && npm run build --prefix ../frontend && node scripts/copy-frontend.js",
+    "admin:seed": "node scripts/seed-admin.js"
   },
   "dependencies": {
     "axios": "^1.7.7",
