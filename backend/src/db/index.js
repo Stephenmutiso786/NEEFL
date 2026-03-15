@@ -1,6 +1,22 @@
 import mysql from 'mysql2/promise';
 import { env } from '../config/env.js';
 
+const sslCa =
+  env.db.sslCa ??
+  (env.db.sslCaBase64 ? Buffer.from(env.db.sslCaBase64, 'base64').toString('utf8') : undefined);
+
+const ssl =
+  env.db.ssl
+    ? {
+        ca: sslCa,
+        rejectUnauthorized: env.db.sslRejectUnauthorized
+      }
+    : undefined;
+
+if (env.db.ssl && !sslCa) {
+  console.warn('DB_SSL is true but no CA certificate was provided. Set DB_SSL_CA or DB_SSL_CA_BASE64.');
+}
+
 const pool = mysql.createPool({
   host: env.db.host,
   port: env.db.port,
@@ -10,7 +26,8 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   namedPlaceholders: true,
-  decimalNumbers: true
+  decimalNumbers: true,
+  ssl
 });
 
 export const db = {

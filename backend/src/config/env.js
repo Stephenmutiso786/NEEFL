@@ -34,7 +34,11 @@ export const env = {
     port: Number(getEnv('DB_PORT', '3306')),
     user: getEnv('DB_USER', 'neefl'),
     password: getEnv('DB_PASSWORD', 'neefl'),
-    name: getEnv('DB_NAME', 'neefl')
+    name: getEnv('DB_NAME', 'neefl'),
+    ssl: getEnv('DB_SSL', 'false') === 'true',
+    sslCa: getEnv('DB_SSL_CA'),
+    sslCaBase64: getEnv('DB_SSL_CA_BASE64'),
+    sslRejectUnauthorized: getEnv('DB_SSL_REJECT_UNAUTHORIZED', 'true') === 'true'
   },
 
   uploadDir: getEnv('UPLOAD_DIR', 'uploads'),

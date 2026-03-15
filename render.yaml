@@ -36,6 +36,14 @@ services:
         sync: false
       - key: DB_NAME
         sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: DB_SSL_CA
+        sync: false
+      - key: DB_SSL_CA_BASE64
+        sync: false
+      - key: DB_SSL_REJECT_UNAUTHORIZED
+        value: "true"
       - key: UPLOAD_DIR
         value: /opt/render/project/src/backend/uploads
       - key: SMTP_HOST
