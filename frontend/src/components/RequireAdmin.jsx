@@ -13,7 +13,7 @@ export default function RequireAdmin({ children }) {
       return;
     }
     if (role !== 'admin') {
-      navigate('/auth/login');
+      navigate('/login');
     }
   }, [navigate]);
 

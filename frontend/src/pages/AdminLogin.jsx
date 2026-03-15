@@ -3,7 +3,7 @@ import { api, clearToken, setToken } from '../lib/api.js';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function AdminLogin() {
-  const [form, setForm] = useState({ email: '', password: '', security_code: '' });
+  const [form, setForm] = useState({ email: '', password: '', security_code: '', remember_me: false });
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState({ state: 'idle', message: '' });
   const navigate = useNavigate();
@@ -19,17 +19,20 @@ export default function AdminLogin() {
       const payload = {
         email: form.email || undefined,
         password: form.password,
-        security_code: form.security_code || undefined
+        security_code: form.security_code || undefined,
+        remember_me: Boolean(form.remember_me)
       };
       const data = await api('/api/auth/login', { method: 'POST', body: payload, auth: false });
       if (data?.token) {
-        setToken(data.token);
+        setToken(data.token, { persist: Boolean(form.remember_me) });
       }
       await api('/api/admin/dashboard');
+      setForm((prev) => ({ ...prev, password: '' }));
       setStatus({ state: 'success', message: 'Admin access granted.' });
       navigate('/admin');
     } catch (err) {
       clearToken();
+      setForm((prev) => ({ ...prev, password: '' }));
       setStatus({ state: 'error', message: err.message || 'Login failed.' });
     }
   };
@@ -39,10 +42,10 @@ export default function AdminLogin() {
       <div className="card p-6">
         <h3 className="section-title">Admin Login</h3>
         <p className="section-subtitle">Secure access to platform controls.</p>
-        <form className="mt-6 grid gap-4" onSubmit={onSubmit}>
+        <form className="mt-6 grid gap-4" onSubmit={onSubmit} autoComplete="off">
           <div>
             <label className="label">Email / Username</label>
-            <input className="input" type="text" value={form.email} onChange={onChange('email')} required />
+            <input className="input" type="text" value={form.email} onChange={onChange('email')} required autoComplete="off" />
           </div>
           <div>
             <label className="label">Password</label>
@@ -52,6 +55,7 @@ export default function AdminLogin() {
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
                 onChange={onChange('password')}
+                autoComplete="new-password"
                 required
               />
               <button
@@ -67,6 +71,15 @@ export default function AdminLogin() {
             <label className="label">Security Code (if enabled)</label>
             <input className="input" value={form.security_code} onChange={onChange('security_code')} placeholder="Optional" />
           </div>
+          <label className="flex items-center gap-2 text-sm text-ink-700">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-mint-500"
+              checked={Boolean(form.remember_me)}
+              onChange={(event) => setForm((prev) => ({ ...prev, remember_me: event.target.checked }))}
+            />
+            Remember me for 30 days
+          </label>
           <button className="btn-primary" type="submit" disabled={status.state === 'loading'}>
             {status.state === 'loading' ? 'Signing in...' : 'Login'}
           </button>

@@ -42,7 +42,7 @@ export default function Layout() {
     };
   }, []);
 
-  const maintenanceBypass = ['/admin/login', '/auth/login', '/auth/reset'].includes(location.pathname);
+  const maintenanceBypass = ['/admin/login', '/login', '/auth/login', '/auth/reset'].includes(location.pathname);
   if (maintenance.checked && maintenance.enabled && role !== 'admin' && !maintenanceBypass) {
     return <MaintenancePage message={maintenance.message} endTime={maintenance.end_time} />;
   }

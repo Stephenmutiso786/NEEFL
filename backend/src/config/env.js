@@ -25,6 +25,7 @@ export const env = {
 
   jwtSecret: requireEnv('JWT_SECRET'),
   jwtExpiresIn: getEnv('JWT_EXPIRES_IN', '7d'),
+  jwtRememberExpiresIn: getEnv('JWT_REMEMBER_EXPIRES_IN', '30d'),
   adminSecurityCode: getEnv('ADMIN_SECURITY_CODE'),
   loginMaxAttempts: Number(getEnv('LOGIN_MAX_ATTEMPTS', '5')),
   loginLockMinutes: Number(getEnv('LOGIN_LOCK_MINUTES', '15')),

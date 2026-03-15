@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
 export function getToken() {
-  return window.localStorage.getItem('neefl_token');
+  return window.sessionStorage.getItem('neefl_token') || window.localStorage.getItem('neefl_token');
 }
 
 export function getTokenPayload() {
@@ -29,11 +29,26 @@ export function getUserId() {
 }
 
 export function setToken(token) {
-  window.localStorage.setItem('neefl_token', token);
+  const persist =
+    typeof arguments[1] === 'boolean'
+      ? arguments[1]
+      : typeof arguments[1] === 'object' && arguments[1] !== null
+        ? arguments[1].persist !== false
+        : true;
+
+  if (persist) {
+    window.localStorage.setItem('neefl_token', token);
+    window.sessionStorage.removeItem('neefl_token');
+    return;
+  }
+
+  window.sessionStorage.setItem('neefl_token', token);
+  window.localStorage.removeItem('neefl_token');
 }
 
 export function clearToken() {
   window.localStorage.removeItem('neefl_token');
+  window.sessionStorage.removeItem('neefl_token');
 }
 
 function parseResponseText(text) {

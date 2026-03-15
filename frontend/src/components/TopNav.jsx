@@ -109,7 +109,7 @@ export default function TopNav() {
 
   const onLogout = () => {
     clearToken();
-    navigate('/auth/login');
+    navigate('/login');
   };
 
   const visibleLinks = links.filter((link) => canAccess(link.module));
@@ -131,9 +131,8 @@ export default function TopNav() {
       </div>
       {!token && (
         <>
-          <NavLink className="btn-secondary" to="/auth/login">Login</NavLink>
-          <NavLink className="btn-secondary" to="/auth/register">Register</NavLink>
-          <NavLink className="btn-ghost" to="/admin/login">Admin Login</NavLink>
+          <NavLink className="btn-secondary" to="/login">Login</NavLink>
+          <NavLink className="btn-secondary" to="/register">Register</NavLink>
         </>
       )}
       {token && (

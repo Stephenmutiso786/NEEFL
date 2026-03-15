@@ -114,7 +114,7 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
 }));
 
 router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (req, res) => {
-  const { email, phone, password, security_code } = req.body;
+  const { email, phone, password, security_code, remember_me } = req.body;
   const [rows] = await db.query(
     `SELECT id, password_hash, role, status, failed_login_attempts, locked_until
      FROM users WHERE email = :email OR phone = :phone`,
@@ -183,7 +183,8 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
     { id: user.id }
   );
 
-  const token = signToken({ sub: user.id, role: user.role });
+  const expiresIn = remember_me ? env.jwtRememberExpiresIn : env.jwtExpiresIn;
+  const token = signToken({ sub: user.id, role: user.role }, { expiresIn });
   return res.json({ token });
 }));
 

@@ -11,7 +11,7 @@ export default function RequireRole({ roles, permission, children }) {
     const token = getToken();
     const role = getUserRole();
     if (!token) {
-      navigate('/auth/login');
+      navigate('/login');
       return;
     }
     if (!roles.includes(role)) {

@@ -51,13 +51,13 @@ export default function Home() {
 
   const quickLinks = useMemo(() => {
     if (!token) {
-      return [
-        { label: 'Match Hub', desc: 'Upcoming fixtures', path: '/matches', style: 'tile-teal', module: 'matches' },
-        { label: 'Live Arena', desc: 'Watch streams', path: '/streams', style: 'tile-magenta', module: 'streams' },
-        { label: 'Leaderboard', desc: 'Top players', path: '/leaderboard', style: 'tile-gold' },
-        { label: 'Login', desc: 'Access player tools', path: '/auth/login', style: 'tile-lime' }
-      ];
-    }
+        return [
+          { label: 'Match Hub', desc: 'Upcoming fixtures', path: '/matches', style: 'tile-teal', module: 'matches' },
+          { label: 'Live Arena', desc: 'Watch streams', path: '/streams', style: 'tile-magenta', module: 'streams' },
+          { label: 'Leaderboard', desc: 'Top players', path: '/leaderboard', style: 'tile-gold' },
+          { label: 'Login', desc: 'Access player tools', path: '/login', style: 'tile-lime' }
+        ];
+      }
     if (role === 'admin') {
       return [
         { label: 'Admin HQ', desc: 'System overview', path: '/admin', style: 'tile-teal', module: 'admin' },
@@ -140,7 +140,7 @@ export default function Home() {
                   Betting Odds
                 </span>
               </Link>
-              <Link className="btn-ghost" to="/auth/login">Login</Link>
+              <Link className="btn-ghost" to="/login">Login</Link>
             </div>
           </div>
           <div className="grid gap-4">

@@ -28,7 +28,8 @@ export const loginSchema = z.object({
   email: z.string().min(3).optional(),
   phone: z.string().min(7).optional(),
   password: z.string().min(8),
-  security_code: z.string().min(3).optional()
+  security_code: z.string().min(3).optional(),
+  remember_me: z.boolean().optional()
 }).refine((data) => data.email || data.phone, {
   message: 'email_or_phone_required'
 });

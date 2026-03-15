@@ -7,7 +7,7 @@ export default function RequireAuth({ children }) {
 
   useEffect(() => {
     if (!getToken()) {
-      navigate('/auth/login');
+      navigate('/login');
     }
   }, [navigate]);
 

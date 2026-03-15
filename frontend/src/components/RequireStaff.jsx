@@ -11,7 +11,7 @@ export default function RequireStaff({ children }) {
     const token = getToken();
     const role = getUserRole();
     if (!token) {
-      navigate('/auth/login');
+      navigate('/login');
       return;
     }
     if (!['admin', 'supervisor', 'referee', 'moderator'].includes(role)) {
