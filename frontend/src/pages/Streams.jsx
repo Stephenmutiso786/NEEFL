@@ -399,6 +399,11 @@ export default function Streams() {
     event.preventDefault();
     setStatus({ state: 'loading', message: '' });
     try {
+      const matchIdToSubmit = selectedMatchId || streamForm.match_id;
+      if (!matchIdToSubmit) {
+        setStatus({ state: 'error', message: 'Select a match before adding a stream link.' });
+        return;
+      }
       const payload = {
         stream_platform: streamForm.stream_platform,
         stream_link: streamForm.stream_link,
@@ -411,7 +416,7 @@ export default function Streams() {
       if (canApproveStream) {
         payload.access_level = streamForm.access_level;
       }
-      const response = await api(`/api/matches/${streamForm.match_id}/stream`, {
+      const response = await api(`/api/matches/${matchIdToSubmit}/stream`, {
         method: 'POST',
         body: payload
       });
@@ -889,12 +894,12 @@ export default function Streams() {
           <p className="section-subtitle">Admins can go live instantly. Players and referees submit proof streams for review.</p>
           <form className="mt-4 grid gap-4 md:grid-cols-3" onSubmit={submitStream}>
             <div>
-              <label className="label">Match ID</label>
+              <label className="label">Selected Match</label>
               <input
                 className="input"
-                value={streamForm.match_id}
-                onChange={(e) => setStreamForm((prev) => ({ ...prev, match_id: e.target.value }))}
-                required
+                value={streamForm.match_id || ''}
+                disabled
+                placeholder="Choose a match from the switcher above"
               />
             </div>
             <div>
