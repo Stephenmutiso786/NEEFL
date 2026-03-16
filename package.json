@@ -1,0 +1,29 @@
+{
+  "name": "neefl",
+  "version": "1.0.0",
+  "description": "Real backend system for a competitive eFootball esports league: players, tournaments, scheduling, verification, rankings, disputes, and M-Pesa payments.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Stephenmutiso786/NEEFL.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Stephenmutiso786/NEEFL/issues"
+  },
+  "homepage": "https://github.com/Stephenmutiso786/NEEFL#readme",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "body-parser": "^2.2.2",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
+  }
+}
