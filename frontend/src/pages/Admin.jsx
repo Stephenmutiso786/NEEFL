@@ -53,6 +53,20 @@ export default function Admin() {
     }
   };
 
+  const deleteUser = async () => {
+    if (!userAction.id) return;
+    const confirmed = window.confirm('Delete this user? This will deactivate access and scrub profile details.');
+    if (!confirmed) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/admin/users/${userAction.id}/delete`, { method: 'POST' });
+      setStatus({ state: 'success', message: 'User deleted.' });
+      loadDashboard();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
   const approveResult = async () => {
     setStatus({ state: 'loading', message: '' });
     try {
@@ -190,10 +204,11 @@ export default function Admin() {
 
       <section className="card p-6">
         <h3 className="section-title">Player Management</h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto_auto]">
+        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto_auto_auto]">
           <input className="input" value={userAction.id} onChange={(e) => setUserAction({ id: e.target.value })} placeholder="User ID" />
           <button className="btn-secondary" type="button" onClick={approveUser}>Approve</button>
           <button className="btn-secondary" type="button" onClick={banUser}>Ban</button>
+          <button className="btn-secondary" type="button" onClick={deleteUser}>Delete</button>
         </div>
       </section>
 

@@ -161,6 +161,96 @@ router.post('/users/:id/ban', asyncHandler(async (req, res) => {
   res.status(204).send();
 }));
 
+router.post('/users/:id/delete', asyncHandler(async (req, res) => {
+  const targetId = Number(req.params.id);
+  if (!Number.isFinite(targetId)) {
+    return res.status(400).json({ error: 'invalid_user_id' });
+  }
+  if (targetId === req.user.id) {
+    return res.status(400).json({ error: 'cannot_delete_self' });
+  }
+
+  const [rows] = await db.query(
+    'SELECT id, role, status FROM users WHERE id = :id',
+    { id: targetId }
+  );
+  if (!rows.length) {
+    return res.status(404).json({ error: 'user_not_found' });
+  }
+
+  const target = rows[0];
+  if (target.role === 'admin') {
+    const [[admins]] = await db.query(
+      `SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND status = 'active'`
+    );
+    if ((admins?.count || 0) <= 1) {
+      return res.status(400).json({ error: 'last_admin' });
+    }
+  }
+
+  const redactedPassword = await hashPassword(`deleted-${targetId}-${Date.now()}`);
+  const redactedTag = `deleted_${targetId}`;
+
+  await db.tx(async (conn) => {
+    await conn.execute(
+      'DELETE FROM friends WHERE requester_id = :id OR receiver_id = :id',
+      { id: targetId }
+    );
+    await conn.execute(
+      'DELETE FROM follows WHERE follower_id = :id OR following_id = :id',
+      { id: targetId }
+    );
+    await conn.execute(
+      'DELETE FROM notifications WHERE user_id = :id',
+      { id: targetId }
+    );
+    await conn.execute(
+      `UPDATE players
+       SET gamer_tag = :gamer_tag,
+           real_name = NULL,
+           country = NULL,
+           region = NULL,
+           preferred_team = NULL
+       WHERE user_id = :id`,
+      { gamer_tag: redactedTag, id: targetId }
+    );
+    await conn.execute(
+      `UPDATE users
+       SET status = 'banned',
+           email = NULL,
+           phone = NULL,
+           password_hash = :password_hash,
+           privacy_profile = 'private',
+           privacy_presence = 0,
+           privacy_friend_requests = 0,
+           privacy_follow = 0,
+           kyc_status = 'rejected',
+           updated_at = NOW()
+       WHERE id = :id`,
+      { password_hash: redactedPassword, id: targetId }
+    );
+  });
+
+  await logAudit(db, {
+    actorUserId: req.user.id,
+    action: 'user_deleted',
+    entityType: 'user',
+    entityId: targetId,
+    ip: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+
+  await logActivity(db, {
+    actorId: req.user.id,
+    action: 'user_deleted',
+    entityType: 'user',
+    entityId: targetId,
+    metadata: { previous_role: target.role, previous_status: target.status }
+  });
+
+  res.status(204).send();
+}));
+
 router.post('/users/:id/reset-password', validate(resetUserPasswordSchema), asyncHandler(async (req, res) => {
   const passwordHash = await hashPassword(req.body.new_password);
   await db.query(

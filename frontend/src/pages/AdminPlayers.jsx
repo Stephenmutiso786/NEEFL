@@ -41,6 +41,19 @@ export default function AdminPlayers() {
     }
   };
 
+  const removeUser = async (id) => {
+    const confirmed = window.confirm('Delete this user? This will deactivate access and scrub profile details.');
+    if (!confirmed) return;
+    setStatus({ state: 'loading', message: '' });
+    try {
+      await api(`/api/admin/users/${id}/delete`, { method: 'POST' });
+      setStatus({ state: 'success', message: 'User deleted.' });
+      load();
+    } catch (err) {
+      setStatus({ state: 'error', message: err.message });
+    }
+  };
+
   const resetPassword = async (event) => {
     event.preventDefault();
     if (!resetForm.id) return;
@@ -154,6 +167,13 @@ export default function AdminPlayers() {
                       ) : (
                         <button className="btn-secondary" type="button" onClick={() => approve(player.id)}>Unban</button>
                       )}
+                      <button
+                        className="btn-secondary"
+                        type="button"
+                        onClick={() => removeUser(player.id)}
+                      >
+                        Delete
+                      </button>
                       <button
                         className="btn-secondary"
                         type="button"
