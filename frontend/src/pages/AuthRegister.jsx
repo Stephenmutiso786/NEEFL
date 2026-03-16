@@ -73,10 +73,15 @@ export default function AuthRegister() {
         role: form.role
       };
       const data = await api('/api/auth/register', { method: 'POST', body: payload, auth: false });
-      if (data?.token) {
-        setToken(data.token);
+      if (data?.approval_required || !data?.token) {
+        setStatus({
+          state: 'success',
+          message: 'Account created. Supervisor/referee accounts must be approved by an admin before login.'
+        });
+        return;
       }
-      setStatus({ state: 'success', message: 'Registration complete. Token saved.' });
+      setToken(data.token);
+      setStatus({ state: 'success', message: 'Registration complete. You can now log in.' });
       const role = getUserRole();
       if (role === 'fan') {
         navigate('/fan/dashboard');
@@ -101,7 +106,7 @@ export default function AuthRegister() {
   return (
     <div className="card p-6">
       <h3 className="section-title">Register</h3>
-      <p className="section-subtitle">Create a player, fan, bettor, supervisor, or referee account. Approval required.</p>
+      <p className="section-subtitle">Create a player, fan, bettor, supervisor, or referee account. Supervisor/referee approval required.</p>
       <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
         <div>
           <label className="label">Gamer Tag</label>

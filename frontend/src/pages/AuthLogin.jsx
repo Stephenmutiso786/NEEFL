@@ -44,7 +44,11 @@ export default function AuthLogin() {
       }
     } catch (err) {
       setForm((prev) => ({ ...prev, password: '' }));
-      setStatus({ state: 'error', message: err.message });
+      const message =
+        err.message === 'pending_approval'
+          ? 'Your supervisor/referee account is pending admin approval.'
+          : err.message;
+      setStatus({ state: 'error', message });
     }
   };
 
@@ -110,7 +114,7 @@ export default function AuthLogin() {
         <h3 className="card-title">Login Requirements</h3>
         <ul className="mt-4 space-y-2 text-sm text-ink-700">
           <li>1. Use email or phone with your password.</li>
-          <li>2. Accounts are approved by an admin before access.</li>
+          <li>2. Supervisor/referee accounts require admin approval before access.</li>
           <li>3. Admins sign in on the admin login page.</li>
         </ul>
       </div>

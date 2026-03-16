@@ -24,6 +24,8 @@ import { getSettings, parseBooleanSetting } from '../services/platformSettings.j
 
 const router = Router();
 
+const approvalRequiredRoles = new Set(['supervisor', 'referee']);
+
 const loginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -59,6 +61,8 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
 
   const { email, phone, password, gamer_tag, real_name, country, region, preferred_team, role } = req.body;
   const userRole = role || 'player';
+  const requiresApproval = approvalRequiredRoles.has(userRole);
+  const accountStatus = requiresApproval ? 'pending' : 'active';
 
   const [existing] = await db.query(
     'SELECT id FROM users WHERE email = :email OR phone = :phone',
@@ -73,9 +77,15 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
   const userId = await db.tx(async (conn) => {
     const [result] = await conn.execute(
       `INSERT INTO users (email, phone, password_hash, role, status)
-       VALUES (:email, :phone, :password_hash, :role, 'pending')
+       VALUES (:email, :phone, :password_hash, :role, :status)
        RETURNING id`,
-      { email: email || null, phone: phone || null, password_hash: passwordHash, role: userRole }
+      {
+        email: email || null,
+        phone: phone || null,
+        password_hash: passwordHash,
+        role: userRole,
+        status: accountStatus
+      }
     );
 
     const id = result.insertId;
@@ -101,8 +111,6 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
     return id;
   });
 
-  const token = signToken({ sub: userId, role: userRole });
-
   const [[admins]] = await db.query(
     `SELECT STRING_AGG(id::text, ',') AS ids FROM users WHERE role = 'admin' AND status = 'active'`
   );
@@ -111,7 +119,16 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
     await notifyUsers(db, adminIds, 'new_user_registered', { user_id: userId, gamer_tag, role: userRole });
   }
 
-  return res.status(201).json({ id: userId, token });
+  if (requiresApproval) {
+    return res.status(201).json({
+      id: userId,
+      status: accountStatus,
+      approval_required: true
+    });
+  }
+
+  const token = signToken({ sub: userId, role: userRole });
+  return res.status(201).json({ id: userId, token, status: accountStatus });
 }));
 
 router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (req, res) => {
@@ -167,6 +184,9 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
   }
   if (user.status === 'banned') {
     return res.status(403).json({ error: 'banned' });
+  }
+  if (approvalRequiredRoles.has(user.role) && user.status !== 'active') {
+    return res.status(403).json({ error: 'pending_approval' });
   }
   if (user.role === 'admin' && env.adminSecurityCode) {
     if (!security_code) {

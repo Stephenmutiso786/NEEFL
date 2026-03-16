@@ -1,6 +1,8 @@
 import { verifyToken } from '../lib/jwt.js';
 import { db } from '../db/index.js';
 
+const approvalRequiredRoles = new Set(['supervisor', 'referee']);
+
 export async function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -22,6 +24,9 @@ export async function requireAuth(req, res, next) {
     const user = rows[0];
     if (user.status === 'banned') {
       return res.status(403).json({ error: 'banned' });
+    }
+    if (approvalRequiredRoles.has(user.role) && user.status !== 'active') {
+      return res.status(403).json({ error: 'pending_approval' });
     }
     req.user = user;
     return next();
