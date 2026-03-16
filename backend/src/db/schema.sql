@@ -263,6 +263,8 @@ CREATE TABLE IF NOT EXISTS live_streams (
   match_id BIGINT NOT NULL,
   stream_platform TEXT NOT NULL CHECK (stream_platform IN ('youtube','twitch','facebook')),
   stream_link VARCHAR(1024) NOT NULL,
+  stream_platform_secondary TEXT NULL CHECK (stream_platform_secondary IN ('youtube','twitch','facebook')),
+  stream_link_secondary VARCHAR(1024) NULL,
   stream_link_hd VARCHAR(1024) NULL,
   stream_link_sd VARCHAR(1024) NULL,
   stream_link_audio VARCHAR(1024) NULL,

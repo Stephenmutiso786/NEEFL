@@ -111,7 +111,8 @@ router.put('/:id/live-data', requireAuth, requireRole('admin', 'supervisor', 're
 router.get('/:id/stream', optionalAuth, asyncHandler(async (req, res) => {
   const matchId = Number(req.params.id);
   const [rows] = await db.query(
-    `SELECT id, match_id, stream_platform, stream_link, stream_link_hd, stream_link_sd, stream_link_audio,
+    `SELECT id, match_id, stream_platform, stream_link, stream_platform_secondary, stream_link_secondary,
+            stream_link_hd, stream_link_sd, stream_link_audio,
             access_level, status, created_at
      FROM live_streams
      WHERE match_id = :match_id AND status IN ('live','approved')
@@ -170,11 +171,13 @@ router.post('/:id/stream', requireAuth, requireRole('player', 'supervisor', 'ref
 
     return conn.execute(
       `INSERT INTO live_streams (
-          match_id, stream_platform, stream_link, stream_link_hd, stream_link_sd, stream_link_audio,
+          match_id, stream_platform, stream_link, stream_platform_secondary, stream_link_secondary,
+          stream_link_hd, stream_link_sd, stream_link_audio,
           access_level, status, created_by, approved_by, approved_at
        )
        VALUES (
-          :match_id, :stream_platform, :stream_link, :stream_link_hd, :stream_link_sd, :stream_link_audio,
+          :match_id, :stream_platform, :stream_link, :stream_platform_secondary, :stream_link_secondary,
+          :stream_link_hd, :stream_link_sd, :stream_link_audio,
           :access_level, :status, :created_by, :approved_by, :approved_at
        )
        RETURNING id`,
@@ -182,6 +185,8 @@ router.post('/:id/stream', requireAuth, requireRole('player', 'supervisor', 'ref
         match_id: matchId,
         stream_platform: parsed.data.stream_platform,
         stream_link: parsed.data.stream_link,
+        stream_platform_secondary: parsed.data.stream_platform_secondary || null,
+        stream_link_secondary: parsed.data.stream_link_secondary || null,
         stream_link_hd: parsed.data.stream_link_hd || null,
         stream_link_sd: parsed.data.stream_link_sd || null,
         stream_link_audio: parsed.data.stream_link_audio || null,

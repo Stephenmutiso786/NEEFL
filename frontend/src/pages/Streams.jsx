@@ -70,6 +70,24 @@ const getTwitchChannel = (link) => {
   }
 };
 
+const buildEmbedUrl = (platform, link, muted = false) => {
+  if (!platform || !link) return null;
+  if (platform === 'youtube') {
+    const id = getYouTubeId(link);
+    if (!id) return link;
+    return `https://www.youtube.com/embed/${id}?autoplay=0&mute=${muted ? 1 : 0}&controls=1`;
+  }
+  if (platform === 'twitch') {
+    const channel = getTwitchChannel(link);
+    const parent = window.location.hostname;
+    return channel ? `https://player.twitch.tv/?channel=${channel}&parent=${parent}` : link;
+  }
+  if (platform === 'facebook') {
+    return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(link)}&show_text=0&width=800`;
+  }
+  return link;
+};
+
 export default function Streams() {
   const [searchParams] = useSearchParams();
   const requestedMatchId = searchParams.get('match');
@@ -101,6 +119,8 @@ export default function Streams() {
     match_id: '',
     stream_platform: 'youtube',
     stream_link: '',
+    stream_platform_secondary: 'youtube',
+    stream_link_secondary: '',
     stream_link_hd: '',
     stream_link_sd: '',
     stream_link_audio: '',
@@ -357,25 +377,16 @@ export default function Streams() {
     return stream.stream_link;
   }, [stream, quality]);
 
-  const embedUrl = useMemo(() => {
+  const primaryEmbedUrl = useMemo(() => {
     if (!activeStreamLink || !stream?.stream_platform) return null;
-    if (stream.stream_platform === 'youtube') {
-      const id = getYouTubeId(activeStreamLink);
-      if (!id) return activeStreamLink;
-      return `https://www.youtube.com/embed/${id}?autoplay=0&mute=${muted ? 1 : 0}&controls=1`;
-    }
-    if (stream.stream_platform === 'twitch') {
-      const channel = getTwitchChannel(activeStreamLink);
-      const parent = window.location.hostname;
-      return channel
-        ? `https://player.twitch.tv/?channel=${channel}&parent=${parent}`
-        : activeStreamLink;
-    }
-    if (stream.stream_platform === 'facebook') {
-      return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(activeStreamLink)}&show_text=0&width=800`;
-    }
-    return activeStreamLink;
+    return buildEmbedUrl(stream.stream_platform, activeStreamLink, muted);
   }, [activeStreamLink, stream, muted]);
+
+  const secondaryEmbedUrl = useMemo(() => {
+    if (!stream?.stream_link_secondary) return null;
+    const platform = stream.stream_platform_secondary || stream.stream_platform;
+    return buildEmbedUrl(platform, stream.stream_link_secondary, muted);
+  }, [stream, muted]);
 
   const requestFullscreen = () => {
     if (!playerRef.current) return;
@@ -391,6 +402,8 @@ export default function Streams() {
       const payload = {
         stream_platform: streamForm.stream_platform,
         stream_link: streamForm.stream_link,
+        stream_platform_secondary: streamForm.stream_link_secondary ? streamForm.stream_platform_secondary : undefined,
+        stream_link_secondary: streamForm.stream_link_secondary || undefined,
         stream_link_hd: streamForm.stream_link_hd || undefined,
         stream_link_sd: streamForm.stream_link_sd || undefined,
         stream_link_audio: streamForm.stream_link_audio || undefined
@@ -410,6 +423,8 @@ export default function Streams() {
         match_id: selectedMatchId ? String(selectedMatchId) : streamForm.match_id,
         stream_platform: streamForm.stream_platform || 'youtube',
         stream_link: '',
+        stream_platform_secondary: streamForm.stream_platform_secondary || 'youtube',
+        stream_link_secondary: '',
         stream_link_hd: '',
         stream_link_sd: '',
         stream_link_audio: '',
@@ -518,15 +533,39 @@ export default function Streams() {
         <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
           <div>
             <div ref={playerRef} className="relative overflow-hidden rounded-2xl border border-sand-200 bg-sand-50">
-              {embedUrl && !streamAccessError ? (
-                <iframe
-                  title="Live Stream"
-                  src={embedUrl}
-                  className="h-[280px] w-full md:h-[420px]"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
-                />
+              {primaryEmbedUrl && !streamAccessError ? (
+                <div className={`grid ${secondaryEmbedUrl ? 'gap-2 md:grid-cols-2' : ''}`}>
+                  <div className="relative">
+                    <iframe
+                      title="Live Stream - Player 1"
+                      src={primaryEmbedUrl}
+                      className="h-[240px] w-full md:h-[420px]"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                    {secondaryEmbedUrl && (
+                      <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-sand-100/90 px-3 py-1 text-[10px] font-semibold text-ink-700">
+                        Player 1
+                      </div>
+                    )}
+                  </div>
+                  {secondaryEmbedUrl && (
+                    <div className="relative md:border-l md:border-sand-200">
+                      <iframe
+                        title="Live Stream - Player 2"
+                        src={secondaryEmbedUrl}
+                        className="h-[240px] w-full md:h-[420px]"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                      />
+                      <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-sand-100/90 px-3 py-1 text-[10px] font-semibold text-ink-700">
+                        Player 2
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="grid h-[280px] w-full place-items-center text-sm text-ink-500 md:h-[420px]">
                   {streamAccessError === 'login_required' && 'Login required to view this stream.'}
@@ -885,6 +924,27 @@ export default function Streams() {
                   Use a video link or an embed link like <span className="font-semibold">youtube.com/embed/live_stream?channel=CHANNEL_ID</span>.
                 </p>
               )}
+            </div>
+            <div>
+              <label className="label">Secondary Platform</label>
+              <select
+                className="input"
+                value={streamForm.stream_platform_secondary}
+                onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_platform_secondary: e.target.value }))}
+              >
+                <option value="youtube">YouTube</option>
+                <option value="twitch">Twitch</option>
+                <option value="facebook">Facebook</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Secondary Stream Link</label>
+              <input
+                className="input"
+                value={streamForm.stream_link_secondary}
+                onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_link_secondary: e.target.value }))}
+                placeholder="Second player stream link"
+              />
             </div>
             <div>
               <label className="label">HD Link (optional)</label>

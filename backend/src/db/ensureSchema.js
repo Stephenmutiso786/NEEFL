@@ -12,6 +12,9 @@ export async function ensureSchema() {
   await runSafe(`ALTER TABLE user_verifications ADD COLUMN IF NOT EXISTS document_front_url VARCHAR(1024) NULL`);
   await runSafe(`ALTER TABLE user_verifications ADD COLUMN IF NOT EXISTS document_back_url VARCHAR(1024) NULL`);
 
+  await runSafe(`ALTER TABLE live_streams ADD COLUMN IF NOT EXISTS stream_platform_secondary TEXT NULL`);
+  await runSafe(`ALTER TABLE live_streams ADD COLUMN IF NOT EXISTS stream_link_secondary VARCHAR(1024) NULL`);
+
   await runSafe(`
     CREATE TABLE IF NOT EXISTS direct_messages (
       id BIGSERIAL PRIMARY KEY,

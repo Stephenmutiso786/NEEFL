@@ -28,6 +28,8 @@ export default function AdminLiveControl() {
   const [streamForm, setStreamForm] = useState({
     stream_platform: 'youtube',
     stream_link: '',
+    stream_platform_secondary: 'youtube',
+    stream_link_secondary: '',
     stream_link_hd: '',
     stream_link_sd: '',
     stream_link_audio: '',
@@ -96,6 +98,8 @@ export default function AdminLiveControl() {
         body: {
           stream_platform: streamForm.stream_platform,
           stream_link: streamForm.stream_link,
+          stream_platform_secondary: streamForm.stream_link_secondary ? streamForm.stream_platform_secondary : undefined,
+          stream_link_secondary: streamForm.stream_link_secondary || undefined,
           stream_link_hd: streamForm.stream_link_hd || undefined,
           stream_link_sd: streamForm.stream_link_sd || undefined,
           stream_link_audio: streamForm.stream_link_audio || undefined,
@@ -106,6 +110,8 @@ export default function AdminLiveControl() {
       setStreamForm({
         stream_platform: 'youtube',
         stream_link: '',
+        stream_platform_secondary: 'youtube',
+        stream_link_secondary: '',
         stream_link_hd: '',
         stream_link_sd: '',
         stream_link_audio: '',
@@ -378,6 +384,27 @@ export default function AdminLiveControl() {
             />
           </div>
           <div>
+            <label className="label">Secondary Platform</label>
+            <select
+              className="input"
+              value={streamForm.stream_platform_secondary}
+              onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_platform_secondary: e.target.value }))}
+            >
+              <option value="youtube">YouTube</option>
+              <option value="twitch">Twitch</option>
+              <option value="facebook">Facebook</option>
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="label">Secondary Stream Link</label>
+            <input
+              className="input"
+              value={streamForm.stream_link_secondary}
+              onChange={(e) => setStreamForm((prev) => ({ ...prev, stream_link_secondary: e.target.value }))}
+              placeholder="Second player stream link"
+            />
+          </div>
+          <div>
             <label className="label">HD Link (optional)</label>
             <input
               className="input"
@@ -426,6 +453,9 @@ export default function AdminLiveControl() {
           <div className="mt-4 rounded-2xl border border-sand-200 bg-sand-50 p-4 text-sm">
             <p className="font-semibold text-ink-900">Current Stream</p>
             <p className="text-xs text-ink-500">Platform: {activeStream.stream_platform}</p>
+            {activeStream.stream_link_secondary && (
+              <p className="text-xs text-ink-500">Secondary: {activeStream.stream_platform_secondary || activeStream.stream_platform}</p>
+            )}
             <p className="text-xs text-ink-500">Status: {activeStream.status}</p>
             <p className="text-xs text-ink-500">Access: {activeStream.access_level}</p>
           </div>

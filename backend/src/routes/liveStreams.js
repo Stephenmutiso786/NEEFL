@@ -17,7 +17,8 @@ router.get('/', requireRole('admin', 'supervisor', 'referee', 'moderator', 'broa
   const params = status ? { status } : {};
 
   const [rows] = await db.query(
-    `SELECT ls.id, ls.match_id, ls.stream_platform, ls.stream_link, ls.stream_link_hd, ls.stream_link_sd,
+    `SELECT ls.id, ls.match_id, ls.stream_platform, ls.stream_link, ls.stream_platform_secondary, ls.stream_link_secondary,
+            ls.stream_link_hd, ls.stream_link_sd,
             ls.stream_link_audio, ls.access_level, ls.status, ls.notes,
             ls.created_by, ls.created_at, ls.approved_by, ls.approved_at,
             p1.gamer_tag as player1_tag, p2.gamer_tag as player2_tag
