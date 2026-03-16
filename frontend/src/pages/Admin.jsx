@@ -179,6 +179,10 @@ export default function Admin() {
             <p className="text-sm font-semibold">Settings</p>
             <p className="text-xs opacity-80">Policies & rules</p>
           </Link>
+          <Link className="tile tile-teal" to="/policies/launch-checklist">
+            <p className="text-sm font-semibold">Launch Checklist</p>
+            <p className="text-xs opacity-80">Pre-launch readiness</p>
+          </Link>
         </div>
       </section>
 

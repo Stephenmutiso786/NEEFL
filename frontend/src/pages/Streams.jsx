@@ -523,7 +523,8 @@ export default function Streams() {
                   title="Live Stream"
                   src={embedUrl}
                   className="h-[280px] w-full md:h-[420px]"
-                  allow="autoplay; encrypted-media; fullscreen"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
                   allowFullScreen
                 />
               ) : (
