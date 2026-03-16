@@ -93,7 +93,7 @@ export default function Streams() {
   const requestedMatchId = searchParams.get('match');
   const token = getToken();
   const role = getUserRole();
-  const canSubmit = Boolean(token) && ['player', 'supervisor', 'referee', 'admin', 'broadcaster'].includes(role);
+  const canSubmit = Boolean(token) && ['admin', 'supervisor', 'referee'].includes(role);
   const canControlLive = Boolean(token) && ['admin', 'supervisor', 'referee'].includes(role);
   const canApproveStream = Boolean(token) && role === 'admin';
 

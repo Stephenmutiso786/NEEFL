@@ -140,7 +140,7 @@ router.get('/:id/stream', optionalAuth, asyncHandler(async (req, res) => {
   res.json({ stream });
 }));
 
-router.post('/:id/stream', requireAuth, requireRole('player', 'supervisor', 'referee', 'admin', 'broadcaster'), asyncHandler(async (req, res) => {
+router.post('/:id/stream', requireAuth, requireRole('admin', 'supervisor', 'referee'), asyncHandler(async (req, res) => {
   const matchId = Number(req.params.id);
   const parsed = submitLiveStreamSchema.safeParse(req.body);
   if (!parsed.success) {
