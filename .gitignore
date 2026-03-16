@@ -5,3 +5,4 @@ backend/.env
 backend/uploads
 backups
 .DS_Store
+__pycache__/
