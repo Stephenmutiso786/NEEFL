@@ -12,7 +12,7 @@ import { logAudit } from '../services/auditService.js';
 
 const router = Router();
 
-router.use(requireAuth, requireRole('admin', 'supervisor', 'referee', 'moderator'));
+router.use(requireAuth, requireRole('admin', 'director', 'supervisor', 'referee', 'moderator'));
 
 router.get('/overview', asyncHandler(async (req, res) => {
   const [[pendingMatches]] = await db.query(

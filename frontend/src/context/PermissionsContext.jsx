@@ -19,6 +19,19 @@ const DEFAULT_ROLE_PERMISSIONS = {
     policies: true,
     seasons: true
   },
+  director: {
+    staff: true,
+    matches: true,
+    tournaments: true,
+    streams: true,
+    disputes: true,
+    community: true,
+    messages: true,
+    support: true,
+    notifications: true,
+    policies: true,
+    seasons: true
+  },
   player: {
     matches: true,
     tournaments: true,
@@ -81,6 +94,17 @@ const DEFAULT_ROLE_PERMISSIONS = {
     community: true,
     messages: true,
     support: true,
+    notifications: true,
+    policies: true,
+    seasons: true
+  },
+  coach: {
+    matches: true,
+    tournaments: true,
+    streams: true,
+    community: true,
+    messages: true,
+    clubs: true,
     notifications: true,
     policies: true,
     seasons: true

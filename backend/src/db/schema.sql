@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) UNIQUE,
   phone VARCHAR(32) UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  role TEXT NOT NULL DEFAULT 'player' CHECK (role IN ('player','admin','supervisor','referee','fan','bettor','moderator','broadcaster')),
+  role TEXT NOT NULL DEFAULT 'player' CHECK (role IN ('player','admin','director','supervisor','referee','coach','fan','bettor','moderator','broadcaster')),
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','active','banned')),
   is_premium SMALLINT NOT NULL DEFAULT 0,
   email_verified_at TIMESTAMP NULL,

@@ -63,7 +63,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
   res.json({ tournament: rows[0] });
 }));
 
-router.post('/', requireAuth, requireRole('admin'), validate(createTournamentSchema), asyncHandler(async (req, res) => {
+router.post('/', requireAuth, requireRole('admin', 'director'), validate(createTournamentSchema), asyncHandler(async (req, res) => {
   const { name, format, entry_fee, prize_pool, rules, start_date, end_date, season_id } = req.body;
 
   const [result] = await db.query(
@@ -160,7 +160,7 @@ router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
   });
 }));
 
-router.post('/:id/schedule', requireAuth, requireRole('admin'), validate(scheduleSchema), asyncHandler(async (req, res) => {
+router.post('/:id/schedule', requireAuth, requireRole('admin', 'director'), validate(scheduleSchema), asyncHandler(async (req, res) => {
   const tournamentId = Number(req.params.id);
   const [tRows] = await db.query(
     'SELECT id, format, start_date FROM tournaments WHERE id = :id',

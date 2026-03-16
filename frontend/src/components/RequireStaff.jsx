@@ -14,7 +14,7 @@ export default function RequireStaff({ children }) {
       navigate('/login');
       return;
     }
-    if (!['admin', 'supervisor', 'referee', 'moderator'].includes(role)) {
+    if (!['admin', 'director', 'supervisor', 'referee', 'moderator'].includes(role)) {
       navigate('/player/dashboard');
       return;
     }
@@ -24,7 +24,7 @@ export default function RequireStaff({ children }) {
   }, [navigate, loaded, permissions]);
 
   const role = getUserRole();
-  if (!getToken() || !['admin', 'supervisor', 'referee', 'moderator'].includes(role)) {
+  if (!getToken() || !['admin', 'director', 'supervisor', 'referee', 'moderator'].includes(role)) {
     return null;
   }
   if (role !== 'admin' && loaded && permissions?.staff === false) {

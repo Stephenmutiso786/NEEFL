@@ -67,6 +67,14 @@ export default function Home() {
         { label: 'Settings', desc: 'Policies & rules', path: '/admin/settings', style: 'tile-lime', module: 'admin' }
       ];
     }
+    if (role === 'director') {
+      return [
+        { label: 'Director Hub', desc: 'League oversight', path: '/staff', style: 'tile-teal', module: 'staff' },
+        { label: 'Tournaments', desc: 'Manage schedules', path: '/tournaments', style: 'tile-magenta', module: 'tournaments' },
+        { label: 'Live Arena', desc: 'Watch streams', path: '/streams', style: 'tile-gold', module: 'streams' },
+        { label: 'Announcements', desc: 'Publish updates', path: '/notifications', style: 'tile-lime', module: 'notifications' }
+      ];
+    }
     if (role === 'supervisor' || role === 'referee') {
       return [
         { label: 'Staff Hub', desc: 'Operations', path: '/staff', style: 'tile-teal', module: 'staff' },
@@ -105,6 +113,14 @@ export default function Home() {
         { label: 'Place Bet', desc: 'Live odds', path: '/betting', style: 'tile-magenta', module: 'betting' },
         { label: 'Wallet', desc: 'Balance', path: '/payments', style: 'tile-gold', module: 'wallet' },
         { label: 'Results', desc: 'Match outcomes', path: '/matches', style: 'tile-lime', module: 'matches' }
+      ];
+    }
+    if (role === 'coach') {
+      return [
+        { label: 'Team Hub', desc: 'Manage squad', path: '/player/dashboard', style: 'tile-teal', module: 'matches' },
+        { label: 'Tournaments', desc: 'League entries', path: '/player/tournaments', style: 'tile-magenta', module: 'tournaments' },
+        { label: 'Community', desc: 'Connect players', path: '/community', style: 'tile-gold', module: 'community' },
+        { label: 'Messages', desc: 'Team chats', path: '/messages', style: 'tile-lime', module: 'messages' }
       ];
     }
     return [

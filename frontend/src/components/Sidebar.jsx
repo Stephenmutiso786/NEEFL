@@ -47,6 +47,25 @@ export default function Sidebar() {
       ];
     }
 
+    if (role === 'director') {
+      return [
+        ...base,
+        {
+          title: 'Director',
+          items: [
+            { label: 'Dashboard', path: '/staff', module: 'staff' },
+            { label: 'Tournaments', path: '/tournaments', module: 'tournaments' },
+            { label: 'Matches', path: '/matches', module: 'matches' },
+            { label: 'Disputes', path: '/staff/disputes', module: 'disputes' },
+            { label: 'Live', path: '/streams', module: 'streams' },
+            { label: 'Messages', path: '/messages', module: 'messages' },
+            { label: 'Community', path: '/community', module: 'community' },
+            { label: 'Announcements', path: '/notifications', module: 'notifications' }
+          ]
+        }
+      ];
+    }
+
     if (role === 'supervisor' || role === 'referee') {
       return [
         ...base,
@@ -137,6 +156,25 @@ export default function Sidebar() {
             { label: 'Wallet', path: '/payments', module: 'wallet' },
             { label: 'Upcoming', path: '/matches#upcoming', module: 'matches' },
             { label: 'Messages', path: '/messages', module: 'messages' }
+          ]
+        }
+      ];
+    }
+
+    if (role === 'coach') {
+      return [
+        ...base,
+        {
+          title: 'Coach',
+          items: [
+            { label: 'Dashboard', path: '/player/dashboard' },
+            { label: 'Tournaments', path: '/player/tournaments', module: 'tournaments' },
+            { label: 'My Matches', path: '/player/matches', module: 'matches' },
+            { label: 'Community', path: '/community', module: 'community' },
+            { label: 'Messages', path: '/messages', module: 'messages' },
+            { label: 'Clubs', path: '/clubs', module: 'clubs' },
+            { label: 'Notifications', path: '/notifications', module: 'notifications' },
+            { label: 'Rules', path: '/policies/rulebook', module: 'policies' }
           ]
         }
       ];

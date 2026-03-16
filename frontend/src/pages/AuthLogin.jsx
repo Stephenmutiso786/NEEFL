@@ -31,6 +31,8 @@ export default function AuthLogin() {
       const role = getUserRole();
       if (role === 'admin') {
         navigate('/admin');
+      } else if (role === 'director') {
+        navigate('/staff');
       } else if (role === 'supervisor' || role === 'referee' || role === 'moderator') {
         navigate('/staff');
       } else if (role === 'broadcaster') {
@@ -39,6 +41,8 @@ export default function AuthLogin() {
         navigate('/fan/dashboard');
       } else if (role === 'bettor') {
         navigate('/bettor/dashboard');
+      } else if (role === 'coach') {
+        navigate('/player/dashboard');
       } else {
         navigate('/player/dashboard');
       }

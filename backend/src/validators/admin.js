@@ -10,7 +10,7 @@ export const resolveDisputeSchema = z.object({
 });
 
 export const setRoleSchema = z.object({
-  role: z.enum(['admin', 'player', 'supervisor', 'referee', 'fan', 'bettor', 'moderator', 'broadcaster'])
+  role: z.enum(['admin', 'director', 'player', 'supervisor', 'referee', 'coach', 'fan', 'bettor', 'moderator', 'broadcaster'])
 });
 
 export const rejectResultSchema = z.object({

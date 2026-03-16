@@ -14,7 +14,7 @@ export const registerSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().min(7).optional(),
   password: strongPassword,
-  role: z.enum(['player', 'supervisor', 'referee', 'fan', 'bettor']).optional(),
+  role: z.enum(['player', 'supervisor', 'referee', 'coach', 'fan', 'bettor']).optional(),
   gamer_tag: z.string().min(3).max(64),
   real_name: z.string().max(128).optional(),
   country: z.string().max(64).optional(),

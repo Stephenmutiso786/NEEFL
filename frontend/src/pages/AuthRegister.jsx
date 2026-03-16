@@ -106,7 +106,7 @@ export default function AuthRegister() {
   return (
     <div className="card p-6">
       <h3 className="section-title">Register</h3>
-      <p className="section-subtitle">Create a player, fan, bettor, supervisor, or referee account. Supervisor/referee approval required.</p>
+      <p className="section-subtitle">Create a player, coach, fan, bettor, supervisor, or referee account. Supervisor/referee approval required.</p>
       <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
         <div>
           <label className="label">Gamer Tag</label>
@@ -140,6 +140,7 @@ export default function AuthRegister() {
           <label className="label">Role</label>
           <select className="input" value={form.role} onChange={onChange('role')}>
             <option value="player">Player</option>
+            <option value="coach">Coach</option>
             <option value="fan">Fan</option>
             <option value="bettor">Bettor</option>
             <option value="supervisor">Supervisor</option>

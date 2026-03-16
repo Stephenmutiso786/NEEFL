@@ -18,7 +18,7 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ seasons: rows });
 }));
 
-router.post('/', requireAuth, requireRole('admin'), validate(seasonCreateSchema), asyncHandler(async (req, res) => {
+router.post('/', requireAuth, requireRole('admin', 'director'), validate(seasonCreateSchema), asyncHandler(async (req, res) => {
   const { name, entry_fee, prize_pool, start_date, end_date, status } = req.body;
   const [result] = await db.query(
     `INSERT INTO seasons (name, entry_fee, prize_pool, start_date, end_date, status)
@@ -44,7 +44,7 @@ router.post('/', requireAuth, requireRole('admin'), validate(seasonCreateSchema)
   res.status(201).json({ id: result.insertId });
 }));
 
-router.put('/:id', requireAuth, requireRole('admin'), validate(seasonUpdateSchema), asyncHandler(async (req, res) => {
+router.put('/:id', requireAuth, requireRole('admin', 'director'), validate(seasonUpdateSchema), asyncHandler(async (req, res) => {
   const { name, entry_fee, prize_pool, start_date, end_date, status } = req.body;
   await db.query(
     `UPDATE seasons

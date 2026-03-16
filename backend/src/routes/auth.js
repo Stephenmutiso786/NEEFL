@@ -159,7 +159,7 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
       }
     });
   }
-  if (!['player', 'admin', 'supervisor', 'referee', 'fan', 'bettor', 'moderator', 'broadcaster'].includes(user.role)) {
+  if (!['player', 'admin', 'director', 'supervisor', 'referee', 'coach', 'fan', 'bettor', 'moderator', 'broadcaster'].includes(user.role)) {
     return res.status(403).json({ error: 'role_not_allowed' });
   }
   if (user.locked_until && dayjs().isBefore(dayjs(user.locked_until))) {

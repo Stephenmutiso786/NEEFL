@@ -11,7 +11,7 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.get('/', requireRole('admin', 'supervisor', 'referee', 'moderator', 'broadcaster'), asyncHandler(async (req, res) => {
+router.get('/', requireRole('admin', 'director', 'supervisor', 'referee', 'moderator', 'broadcaster'), asyncHandler(async (req, res) => {
   const status = req.query.status;
   const whereClause = status ? 'WHERE ls.status = :status' : '';
   const params = status ? { status } : {};

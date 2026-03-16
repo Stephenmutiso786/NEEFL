@@ -58,6 +58,19 @@ export default function AdminSettings() {
       policies: true,
       seasons: true
     },
+    director: {
+      staff: true,
+      matches: true,
+      tournaments: true,
+      streams: true,
+      disputes: true,
+      community: true,
+      messages: true,
+      support: true,
+      notifications: true,
+      policies: true,
+      seasons: true
+    },
     player: {
       matches: true,
       tournaments: true,
@@ -124,6 +137,17 @@ export default function AdminSettings() {
       policies: true,
       seasons: true
     },
+    coach: {
+      matches: true,
+      tournaments: true,
+      streams: true,
+      community: true,
+      messages: true,
+      clubs: true,
+      notifications: true,
+      policies: true,
+      seasons: true
+    },
     moderator: {
       staff: true,
       matches: true,
@@ -165,11 +189,13 @@ export default function AdminSettings() {
     { key: 'admin', label: 'Admin Center' }
   ];
   const permissionRoles = [
+    { key: 'director', label: 'Director' },
     { key: 'player', label: 'Player' },
     { key: 'fan', label: 'Fan' },
     { key: 'bettor', label: 'Bettor' },
     { key: 'supervisor', label: 'Supervisor' },
     { key: 'referee', label: 'Referee' },
+    { key: 'coach', label: 'Coach' },
     { key: 'moderator', label: 'Moderator' },
     { key: 'broadcaster', label: 'Broadcaster' },
     { key: 'admin', label: 'Admin' }
@@ -646,6 +672,8 @@ export default function AdminSettings() {
               <option value="player">Player</option>
               <option value="fan">Fan</option>
               <option value="bettor">Bettor</option>
+              <option value="coach">Coach</option>
+              <option value="director">Director</option>
               <option value="supervisor">Supervisor</option>
               <option value="referee">Referee</option>
               <option value="moderator">Moderator</option>

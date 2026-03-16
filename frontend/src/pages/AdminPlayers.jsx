@@ -229,6 +229,8 @@ export default function AdminPlayers() {
               <option value="player">Player</option>
               <option value="fan">Fan</option>
               <option value="bettor">Bettor</option>
+              <option value="coach">Coach</option>
+              <option value="director">Director</option>
               <option value="supervisor">Supervisor</option>
               <option value="referee">Referee</option>
               <option value="moderator">Moderator</option>

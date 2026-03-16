@@ -11,7 +11,7 @@ const formatDateTime = (value) => {
 
 export default function Tournaments() {
   const role = getUserRole();
-  const isAdmin = role === 'admin';
+  const canManage = role === 'admin' || role === 'director';
   const [tournaments, setTournaments] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [paymentInfo, setPaymentInfo] = useState({
@@ -230,9 +230,9 @@ export default function Tournaments() {
         </div>
       </section>
 
-      {isAdmin && (
+      {canManage && (
         <section className="card p-6">
-          <h3 className="section-title">Create Tournament (Admin)</h3>
+          <h3 className="section-title">Create Tournament (Admin/Director)</h3>
           <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={onCreate}>
             <div>
               <label className="label">Tournament Name</label>
@@ -274,9 +274,9 @@ export default function Tournaments() {
         </section>
       )}
 
-      {isAdmin && (
+      {canManage && (
         <section className="card p-6">
-          <h3 className="section-title">Generate Schedule (Admin)</h3>
+          <h3 className="section-title">Generate Schedule (Admin/Director)</h3>
           <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={onSchedule}>
             <div>
               <label className="label">Tournament ID</label>

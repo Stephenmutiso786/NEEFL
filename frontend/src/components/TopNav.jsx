@@ -23,6 +23,16 @@ const adminLinks = [
   { label: 'Settings', path: '/admin/settings', module: 'admin' }
 ];
 
+const directorLinks = [
+  { label: 'Director Hub', path: '/staff', module: 'staff' },
+  { label: 'Tournaments', path: '/tournaments', module: 'tournaments' },
+  { label: 'Matches', path: '/matches#upcoming', module: 'matches' },
+  { label: 'Live', path: '/streams', module: 'streams' },
+  { label: 'Community', path: '/community', module: 'community' },
+  { label: 'Messages', path: '/messages', module: 'messages' },
+  { label: 'Announcements', path: '/notifications', module: 'notifications' }
+];
+
 const staffLinks = [
   { label: 'Staff Hub', path: '/staff', module: 'staff' },
   { label: 'Match Review', path: '/staff/matches', module: 'staff' },
@@ -82,6 +92,16 @@ const playerLinks = [
   { label: 'Rules', path: '/policies/rulebook', module: 'policies' }
 ];
 
+const coachLinks = [
+  { label: 'Team Hub', path: '/player/dashboard' },
+  { label: 'Tournaments', path: '/tournaments', module: 'tournaments' },
+  { label: 'Upcoming', path: '/matches#upcoming', module: 'matches' },
+  { label: 'Live', path: '/streams', module: 'streams' },
+  { label: 'Community', path: '/community', module: 'community' },
+  { label: 'Messages', path: '/messages', module: 'messages' },
+  { label: 'Rules', path: '/policies/rulebook', module: 'policies' }
+];
+
 export default function TopNav() {
   const token = getToken();
   const role = getUserRole();
@@ -92,6 +112,8 @@ export default function TopNav() {
   if (token) {
     if (role === 'admin') {
       links = adminLinks;
+    } else if (role === 'director') {
+      links = directorLinks;
     } else if (role === 'supervisor' || role === 'referee') {
       links = staffLinks;
     } else if (role === 'moderator') {
@@ -102,6 +124,8 @@ export default function TopNav() {
       links = fanLinks;
     } else if (role === 'bettor') {
       links = bettorLinks;
+    } else if (role === 'coach') {
+      links = coachLinks;
     } else {
       links = playerLinks;
     }

@@ -12,6 +12,13 @@ export async function ensureSchema() {
   await runSafe(`ALTER TABLE user_verifications ADD COLUMN IF NOT EXISTS document_front_url VARCHAR(1024) NULL`);
   await runSafe(`ALTER TABLE user_verifications ADD COLUMN IF NOT EXISTS document_back_url VARCHAR(1024) NULL`);
 
+  await runSafe(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`);
+  await runSafe(
+    `ALTER TABLE users
+     ADD CONSTRAINT users_role_check
+     CHECK (role IN ('player','admin','director','supervisor','referee','coach','fan','bettor','moderator','broadcaster'))`
+  );
+
   await runSafe(`ALTER TABLE live_streams ADD COLUMN IF NOT EXISTS stream_platform_secondary TEXT NULL`);
   await runSafe(`ALTER TABLE live_streams ADD COLUMN IF NOT EXISTS stream_link_secondary VARCHAR(1024) NULL`);
 
